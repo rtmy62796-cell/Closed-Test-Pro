@@ -343,7 +343,7 @@
                 </div>
                 <div class="space-y-1">
                     <h3 class="font-extrabold text-gray-900 text-base" id="trial-app-title">Testing App</h3>
-                    <p class="text-xs text-gray-500">Please explore the app for 30 seconds to complete today's testing requirement.</p>
+                    <p class="text-xs text-gray-500">Redirected to Play Store! Please explore for 30s to finish daily test.</p>
                 </div>
                 <div class="text-3xl font-extrabold text-blue-600 font-mono" id="countdown-timer">30s</div>
             </div>
@@ -421,6 +421,7 @@
         let currentUploadCost = 60;
         let currentPriceBDT = 60;
         let isPaidUploadMode = false;
+        let selectedAppForReport = null;
 
         const coinBalanceEl = document.getElementById('coin-balance');
         const profileCoinsEl = document.getElementById('profile-coins');
@@ -713,6 +714,7 @@
             renderProfileActiveApps(allApps);
         });
 
+        // হোম স্ক্রিনের অ্যাপসমূহ রেন্ডার এবং ১-টাইম ক্লেইম লজিক
         function renderApps(appsArray) {
             homeAppListEl.innerHTML = '';
             if(appsArray.length === 0) {
@@ -752,12 +754,39 @@
                     </div>
                 `;
                 homeAppListEl.appendChild(card);
+                
+                // সরাসরি লিঙ্ক ওপেন করা এবং ১-টাইম ৫ কয়েন প্রদান
                 if(!isAlreadyClaimed) {
-                    card.querySelector(`#btn-home-test-${appItem.id}`).addEventListener('click', () => start30SecondTrial(appItem, true));
+                    card.querySelector(`#btn-home-test-${appItem.id}`).addEventListener('click', () => {
+                        const now = Date.now();
+                        claimedApps[appItem.id] = { timestamp: now, lastTestedTimestamp: 0 };
+                        userCoins += 5;
+                        testedAppsCount += 1;
+                        
+                        update(ref(db, `users/${userId}`), { 
+                            coins: userCoins, 
+                            testedCount: testedAppsCount,
+                            claimedApps: claimedApps
+                        });
+                        
+                        window.showToast("Task completed! +5 Coins added ✔");
+
+                        let targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
+                        if(!targetLink.startsWith('http://') && !targetLink.startsWith('https://')) {
+                            targetLink = 'https://' + targetLink;
+                        }
+                        const anchor = document.createElement('a');
+                        anchor.href = targetLink;
+                        anchor.target = '_blank';
+                        document.body.appendChild(anchor);
+                        anchor.click();
+                        document.body.removeChild(anchor);
+                    });
                 }
             });
         }
 
+        // ডেইলি টেস্ট ট্যাবের লজিক
         function renderDailyTestingApps(appsArray) {
             dailyTestingListEl.innerHTML = '';
             const myClaimedApps = appsArray.filter(app => claimedApps && claimedApps[app.id]);
@@ -785,7 +814,7 @@
                 if(isTestedToday) completedTodayCount++;
 
                 const card = document.createElement('div');
-                card.className = "flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100";
+                card.className = "flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100 mb-2 shadow-xs";
                 
                 const initials = appItem.name ? appItem.name.substring(0, 2).toUpperCase() : 'AP';
                 const iconHTML = appItem.icon 
@@ -794,7 +823,9 @@
 
                 const btnHTML = isTestedToday 
                     ? `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check text-base"></i> Tested Today</span>` 
-                    : `<button id="btn-daily-${appItem.id}" class="bg-blue-50 text-blue-600 font-extrabold text-xs px-3 py-1.5 rounded-xl cursor-pointer">Check (30s)</button>`;
+                    : `<button id="btn-daily-${appItem.id}" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl cursor-pointer transition flex items-center gap-1">
+                        <i class="fa-solid fa-play text-[10px]"></i> Test Daily (30s)
+                       </button>`;
 
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
@@ -807,8 +838,11 @@
                     <div>${btnHTML}</div>
                 `;
                 dailyTestingListEl.appendChild(card);
+
                 if(!isTestedToday) {
-                    card.querySelector(`#btn-daily-${appItem.id}`).addEventListener('click', () => start30SecondTrial(appItem, false));
+                    card.querySelector(`#btn-daily-${appItem.id}`).addEventListener('click', () => {
+                        startDaily30SecondCheck(appItem);
+                    });
                 }
             });
 
@@ -827,6 +861,52 @@
                 document.getElementById('lock-status-badge').innerHTML = `<i class="fa-solid fa-lock"></i> Locked`;
                 document.getElementById('lock-warning-banner').classList.remove('hide');
             }
+        }
+
+        // ডেইলি টেস্টিং রিডাইরেক্ট এবং ব্যাকগ্রাউন্ডে ৩০ সেকেন্ড ভ্যালিডেশন
+        function startDaily30SecondCheck(appItem) {
+            const modal = document.getElementById('trial-timer-modal');
+            const titleEl = document.getElementById('trial-app-title');
+            const timerEl = document.getElementById('countdown-timer');
+            
+            titleEl.innerText = `Testing: ${appItem.name}`;
+            modal.classList.remove('hide');
+
+            // সরাসরি প্লে স্টোর লিঙ্কে প্রবেশ করাবে
+            let targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
+            if(!targetLink.startsWith('http://') && !targetLink.startsWith('https://')) {
+                targetLink = 'https://' + targetLink;
+            }
+            const anchor = document.createElement('a');
+            anchor.href = targetLink;
+            anchor.target = '_blank';
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+
+            // ইউজারের অ্যাপে সময় কাটাইছে কিনা তা চেক করার ৩০ সে. টাইমার
+            let timeLeft = 30;
+            timerEl.innerText = `${timeLeft}s`;
+
+            const countdownInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = `${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    modal.classList.add('hide');
+
+                    const now = Date.now();
+                    claimedApps[appItem.id].lastTestedTimestamp = now;
+                    
+                    update(ref(db, `users/${userId}/claimedApps/${appItem.id}`), { 
+                        lastTestedTimestamp: now 
+                    });
+                    
+                    window.showToast("Daily check-in completed! ✔");
+                    renderDailyTestingApps(allApps);
+                }
+            }, 1000);
         }
 
         function renderProfileActiveApps(appsArray) {
@@ -878,49 +958,6 @@
             });
         };
 
-        function start30SecondTrial(appItem, isFirstTime) {
-            const modal = document.getElementById('trial-timer-modal');
-            const titleEl = document.getElementById('trial-app-title');
-            const timerEl = document.getElementById('countdown-timer');
-            
-            titleEl.innerText = `Testing: ${appItem.name}`;
-            modal.classList.remove('hide');
-
-            let timeLeft = 30;
-            timerEl.innerText = `${timeLeft}s`;
-
-            const countdownInterval = setInterval(() => {
-                timeLeft--;
-                timerEl.innerText = `${timeLeft}s`;
-
-                if (timeLeft <= 0) {
-                    clearInterval(countdownInterval);
-                    modal.classList.add('hide');
-
-                    const now = Date.now();
-                    if(isFirstTime) {
-                        claimedApps[appItem.id] = { timestamp: now, lastTestedTimestamp: now };
-                        userCoins += 5;
-                        testedAppsCount += 1;
-                        update(ref(db, `users/${userId}`), { 
-                            coins: userCoins, 
-                            testedCount: testedAppsCount,
-                            claimedApps: claimedApps
-                        });
-                        window.showToast("Trial completed! +5 Coins added ✔");
-                    } else {
-                        claimedApps[appItem.id].lastTestedTimestamp = now;
-                        update(ref(db, `users/${userId}/claimedApps/${appItem.id}`), { lastTestedTimestamp: now });
-                        window.showToast("Daily check-in completed for today! ✔");
-                    }
-
-                    setTimeout(() => {
-                        window.open(appItem.link ? appItem.link : 'https://play.google.com', '_blank');
-                    }, 500);
-                }
-            }, 1000);
-        }
-
         window.canNavigateToTab = (tab) => {
             if(tab === 'upload' || tab === 'profile' || tab === 'home') return true;
             const myClaimedKeys = Object.keys(claimedApps || {});
@@ -931,10 +968,17 @@
             return true;
         };
 
+        // অ্যাপ আপলোড ও সিকিউরিটি লিঙ্ক ভ্যালিডেশন
         document.getElementById('btn-submit-app').addEventListener('click', () => {
-            const name = document.getElementById('input-app-name').value;
-            const appLink = document.getElementById('input-app-link').value;
+            const name = document.getElementById('input-app-name').value.trim();
+            const appLink = document.getElementById('input-app-link').value.trim();
             if (!name || !appLink) return window.showToast("Please enter app name and link!");
+
+            // শুধুমাত্র প্লে স্টোর ক্লোজড টেস্টিং লিঙ্ক ফিল্টার করার শর্ত
+            const googlePlayRegex = /^https:\/\/play\.google\.com\/apps\/testing\/[a-zA-Z0-9_.]+$/;
+            if (!googlePlayRegex.test(appLink)) {
+                return window.showToast("❌ ভুল লিঙ্ক! শুধুমাত্র Play Console-এর Testing Link দিন।");
+            }
 
             if(!isPaidUploadMode) {
                 if(userCoins < currentUploadCost) return window.showToast(`Insufficient coins! Need ${currentUploadCost} coins.`);
@@ -943,7 +987,7 @@
             } else {
                 const senderNum = document.getElementById('pay-sender-number').value.trim();
                 const trxId = document.getElementById('pay-trxid').value.trim();
-                if(!senderNum || !trxId) return window.showToast("Please enter your device/sender mobile number and Transaction ID!");
+                if(!senderNum || !trxId) return window.showToast("Please enter your mobile number and TrxID!");
             }
 
             push(ref(db, 'apps'), {
@@ -963,7 +1007,11 @@
                 status: 'Active',
                 createdAt: Date.now()
             }).then(() => {
-                window.showToast("App Uploaded Successfully!");
+                window.showToast("App Upload Request Submitted Successfully!");
+                document.getElementById('input-app-name').value = '';
+                document.getElementById('input-app-link').value = '';
+                document.getElementById('pay-sender-number').value = '';
+                document.getElementById('pay-trxid').value = '';
                 switchTab('tasks', document.querySelectorAll('.nav-btn')[0]);
             });
         });
