@@ -301,7 +301,22 @@
                 </div>
             </div>
 
-            <!-- TAB 4: PROFILE SCREEN -->
+            <!-- TAB 4: MY APPS & ANALYTICS DASHBOARD -->
+            <div id="tab-myapps" class="space-y-4 hide">
+                <div class="flex justify-between items-center bg-white p-4 rounded-3xl border border-gray-100 shadow-xs">
+                    <div>
+                        <h3 class="font-extrabold text-gray-900 text-sm">My Uploaded Apps</h3>
+                        <p class="text-xs text-gray-500">Analytics & tester status for your apps</p>
+                    </div>
+                    <span class="bg-blue-50 text-blue-600 text-xs font-extrabold px-3 py-1 rounded-full" id="my-apps-count-badge">0 Apps</span>
+                </div>
+
+                <div class="space-y-3" id="my-apps-analytics-list">
+                    <p class="text-xs text-gray-400 text-center py-6">Loading your apps...</p>
+                </div>
+            </div>
+
+            <!-- TAB 5: PROFILE SCREEN (ORIGINAL & UNTOUCHED) -->
             <div id="tab-profile" class="space-y-4 hide">
                 <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm space-y-4">
                     <div class="flex items-center gap-3 pb-3 border-b border-gray-100">
@@ -377,10 +392,11 @@
             Notification
         </div>
 
-        <!-- Bottom Navigation Bar (Fixed at bottom) -->
-        <div class="fixed bottom-0 left-0 right-0 max-w-[420px] mx-auto bg-white border-t border-gray-100 h-14 px-3 flex justify-around items-center z-40 shrink-0 shadow-lg">
+        <!-- BOTTOM NAVIGATION BAR (5 BUTTONS) -->
+        <div class="fixed bottom-0 left-0 right-0 max-w-[420px] mx-auto bg-white border-t border-gray-100 h-14 px-2 flex justify-around items-center z-40 shrink-0 shadow-lg">
             <button onclick="switchTab('tasks', this)" class="nav-btn text-[#2563eb] flex flex-col items-center cursor-pointer">
                 <i class="fa-regular fa-clipboard text-lg"></i>
+                <span class="text-[9px] font-bold">Tasks</span>
             </button>
             <button onclick="switchTab('home', this)" class="nav-btn text-gray-400 flex flex-col items-center cursor-pointer">
                 <div class="grid grid-cols-2 gap-0.5 w-4 h-4 p-0.5">
@@ -389,14 +405,21 @@
                     <div class="bg-current rounded-[1px]"></div>
                     <div class="bg-current rounded-[1px]"></div>
                 </div>
+                <span class="text-[9px] font-bold">Apps</span>
             </button>
             <button onclick="switchTab('upload', this)" class="nav-btn text-gray-400 hover:text-gray-600 flex flex-col items-center cursor-pointer">
                 <i class="fa-solid fa-plus text-xl"></i>
+                <span class="text-[9px] font-bold">Upload</span>
+            </button>
+            <button onclick="switchTab('myapps', this)" class="nav-btn text-gray-400 hover:text-gray-600 flex flex-col items-center cursor-pointer">
+                <i class="fa-solid fa-chart-pie text-lg"></i>
+                <span class="text-[9px] font-bold">My Apps</span>
             </button>
             <button onclick="switchTab('profile', this)" class="nav-btn text-gray-400 hover:text-gray-600 flex flex-col items-center cursor-pointer">
-                <div class="w-6 h-6 rounded-full bg-gray-400 text-white text-[10px] font-extrabold flex items-center justify-center">
+                <div class="w-5 h-5 rounded-full bg-gray-400 text-white text-[9px] font-extrabold flex items-center justify-center">
                     my
                 </div>
+                <span class="text-[9px] font-bold">Profile</span>
             </button>
         </div>
 
@@ -438,6 +461,7 @@
         let currentPriceBDT = 60;
         let isPaidUploadMode = false;
         let selectedAppForReport = null;
+        let activeClaimingLock = {};
 
         const coinBalanceEl = document.getElementById('coin-balance');
         const profileCoinsEl = document.getElementById('profile-coins');
@@ -567,7 +591,7 @@
                     localStorage.setItem(deviceBonusKey, "true");
                     set(userRef, { coins: initialCoins, testedCount: 0, name, email, deviceId, claimedApps: {}, createdAt: Date.now() });
                     userCoins = initialCoins;
-                    testedAppsCount = 0;
+                    testedCount: 0;
                     claimedApps = {};
                     window.showToast("Welcome! 30 Free Coins added!");
                 }
@@ -722,6 +746,7 @@
 
             if (!data) {
                 renderDailyTestingApps([]);
+                renderMyAppsAnalytics([]);
                 return;
             }
 
@@ -735,7 +760,6 @@
                     remove(ref(db, `apps/${key}`));
                     return;
                 }
-                // শুধুমাত্র Active অ্যাপগুলোই হোম পেজে দেখাবে
                 if(appObj.status === 'Active') {
                     allApps.push(appObj);
                 }
@@ -744,9 +768,10 @@
             renderApps(allApps);
             renderDailyTestingApps(allApps);
             renderProfileActiveApps(allApps);
+            renderMyAppsAnalytics(Object.keys(data).map(k => ({ id: k, ...data[k] })));
         });
 
-        // Render home apps with 10-minute cooldown protection & max 12 limit
+        // Render home apps with Tester Count Icon & Anti-Abuse Lock
         function renderApps(appsArray) {
             homeAppListEl.innerHTML = '';
             if(appsArray.length === 0) {
@@ -775,7 +800,7 @@
                     ? `<img src="${appItem.icon}" class="w-14 h-14 rounded-2xl object-cover shrink-0">` 
                     : `<div class="w-14 h-14 bg-gradient-to-tr from-pink-600 to-rose-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-sm shrink-0">${initials}</div>`;
 
-                const isAlreadyClaimed = claimedApps && claimedApps[appItem.id];
+                const isAlreadyClaimed = (claimedApps && claimedApps[appItem.id]) || activeClaimingLock[appItem.id];
                 let actionBtnHTML = "";
 
                 if (isAlreadyClaimed) {
@@ -786,8 +811,8 @@
                     actionBtnHTML = `<div class="flex flex-col items-end"><button id="btn-home-test-${appItem.id}" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-extrabold px-5 py-1.5 rounded-full text-xs transition cursor-pointer">Test</button><span class="text-[10px] text-amber-500 font-bold mt-1">+5 🪙</span></div>`;
                 }
 
-                const testersReqCount = appItem.testersCount || 19;
-                const categoryName = appItem.category || 'puzzle';
+                const testersReqCount = appItem.testersCount || 12;
+                const categoryName = appItem.category || 'App';
 
                 card.innerHTML = `
                     <div class="flex gap-3 items-center">
@@ -796,7 +821,9 @@
                             <h3 class="font-extrabold text-gray-900 text-sm leading-snug">${appItem.name}</h3>
                             <div class="flex items-center gap-1.5">
                                 <span class="bg-gray-100 text-gray-700 text-[11px] font-bold px-2.5 py-0.5 rounded-md">${categoryName}</span>
-                                <span class="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-user-group text-[9px] text-gray-500"></i> ${testersReqCount}</span>
+                                <span class="bg-gray-100 text-gray-700 text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                                    <i class="fa-solid fa-user-group text-[9px] text-gray-500"></i> ${testersReqCount} Testers
+                                </span>
                             </div>
                             <p class="text-[11px] text-gray-400 truncate max-w-[150px]">${appItem.description || 'test my app'}</p>
                         </div>
@@ -814,30 +841,22 @@
                     const testBtn = card.querySelector(`#btn-home-test-${appItem.id}`);
                     if (testBtn) {
                         testBtn.addEventListener('click', () => {
-                            const currentTime = Date.now();
-                            const cooldownTime = 10 * 60 * 1000; // ১০ মিনিট কুলডাউন
-                            const lastClaimTime = claimedApps[appItem.id] ? claimedApps[appItem.id].lastClaimTimestamp || 0 : 0;
-
-                            if (claimedApps[appItem.id] && (currentTime - lastClaimTime) < cooldownTime) {
-                                const remainingMins = Math.ceil((cooldownTime - (currentTime - lastClaimTime)) / (60 * 1000));
-                                return window.showToast(`⏳ Please wait ${remainingMins} min(s) before claiming again!`);
-                            }
-
+                            if (activeClaimingLock[appItem.id]) return;
+                            
                             const currentActive = Object.keys(claimedApps || {}).length;
-                            if (!claimedApps[appItem.id] && currentActive >= 12) {
+                            if (currentActive >= 12) {
                                 return window.showToast("❌ Limit Reached! You can only have 12 active testing apps at a time.");
                             }
 
-                            claimedApps[appItem.id] = { 
-                                timestamp: claimedApps[appItem.id] ? claimedApps[appItem.id].timestamp : currentTime, 
-                                lastTestedTimestamp: claimedApps[appItem.id] ? claimedApps[appItem.id].lastTestedTimestamp : 0,
-                                lastClaimTimestamp: currentTime 
-                            };
+                            activeClaimingLock[appItem.id] = true;
+                            testBtn.disabled = true;
+                            testBtn.innerText = "Claiming...";
+                            testBtn.className = "bg-gray-200 text-gray-400 font-extrabold px-4 py-1.5 rounded-full text-xs cursor-not-allowed";
 
-                            if (!claimedApps[appItem.id].timestamp_counted) {
-                                userCoins += 5;
-                                testedAppsCount += 1;
-                            }
+                            const now = Date.now();
+                            claimedApps[appItem.id] = { timestamp: now, lastTestedTimestamp: 0 };
+                            userCoins += 5;
+                            testedAppsCount += 1;
                             
                             update(ref(db, `users/${userId}`), { 
                                 coins: userCoins, 
@@ -860,6 +879,82 @@
                         });
                     }
                 }
+            });
+        }
+
+        // Render My Apps & Detailed Analytics Tab
+        function renderMyAppsAnalytics(allDbApps) {
+            const container = document.getElementById('my-apps-analytics-list');
+            const badge = document.getElementById('my-apps-count-badge');
+            container.innerHTML = '';
+
+            const myApps = allDbApps.filter(app => app.uploadedBy === userId);
+            badge.innerText = `${myApps.length} Apps`;
+
+            if(myApps.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-3xl text-center space-y-2 border border-gray-100">
+                        <i class="fa-solid fa-chart-line text-3xl text-blue-200"></i>
+                        <h4 class="font-extrabold text-gray-800 text-xs">No Apps Uploaded Yet</h4>
+                        <p class="text-[11px] text-gray-400">Go to Upload tab to submit your app for closed testing.</p>
+                    </div>`;
+                return;
+            }
+
+            myApps.forEach(appItem => {
+                const activeTestersCount = appItem.testersCount || 12;
+                const uninstallsCount = appItem.uninstalls || 0;
+                const hasIssue = appItem.accessIssue || false;
+                const issueMessage = appItem.issueText || "Main reason: Not available in tester countries. Please open Play Console -> Testing -> Closed testing -> Countries/regions and add all.";
+
+                const initials = appItem.name ? appItem.name.substring(0, 2).toUpperCase() : 'AP';
+                const iconHTML = appItem.icon 
+                    ? `<img src="${appItem.icon}" class="w-12 h-12 rounded-2xl object-cover shrink-0 shadow-xs">` 
+                    : `<div class="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center text-white text-base font-bold shrink-0 shadow-xs">${initials}</div>`;
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-3xl border border-gray-100 shadow-sm space-y-4";
+                
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            ${iconHTML}
+                            <div>
+                                <h3 class="font-extrabold text-gray-900 text-sm">${appItem.name}</h3>
+                                <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block mt-0.5">${appItem.status || 'Active'}</span>
+                            </div>
+                        </div>
+                        <span class="font-extrabold text-xs text-gray-500 font-mono">${activeTestersCount}/12</span>
+                    </div>
+
+                    ${hasIssue ? `
+                    <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl space-y-1.5 text-xs text-amber-900">
+                        <div class="font-extrabold flex items-center gap-1.5 text-amber-600">
+                            <i class="fa-solid fa-triangle-exclamation"></i> 1 tester reported an access issue
+                        </div>
+                        <p class="text-[11px] text-amber-800 leading-relaxed font-medium">${issueMessage}</p>
+                    </div>
+                    ` : ''}
+
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-3">
+                        <div class="flex justify-between items-center text-xs font-bold text-gray-700">
+                            <span>Statistics</span>
+                            <span class="text-[10px] text-gray-400 font-medium">Current day</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            <div class="bg-white p-2.5 rounded-xl border border-gray-100">
+                                <span class="text-[10px] text-gray-400 block font-semibold">Active testers</span>
+                                <span class="text-base font-extrabold text-gray-900 mt-0.5 block">${activeTestersCount}</span>
+                            </div>
+                            <div class="bg-white p-2.5 rounded-xl border border-gray-100">
+                                <span class="text-[10px] text-gray-400 block font-semibold">Uninstalls</span>
+                                <span class="text-base font-extrabold text-gray-900 mt-0.5 block">${uninstallsCount}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
             });
         }
 
@@ -984,7 +1079,7 @@
             }, 1000);
         }
 
-        // Profile active apps with 14 days countdown calculation starting from claim time
+        // Profile active apps with 14 days countdown calculation
         function renderProfileActiveApps(appsArray) {
             const listEl = document.getElementById('profile-active-apps-list');
             const myClaimedKeys = Object.keys(claimedApps || {});
@@ -1035,7 +1130,7 @@
         };
 
         window.canNavigateToTab = (tab) => {
-            if(tab === 'upload' || tab === 'profile' || tab === 'home') return true;
+            if(tab === 'upload' || tab === 'profile' || tab === 'home' || tab === 'myapps') return true;
             const myClaimedKeys = Object.keys(claimedApps || {});
             if(!isDailyTestingCompleted && myClaimedKeys.length > 0) {
                 window.showToast("🔒 Locked! Complete today's daily testing first.");
@@ -1044,7 +1139,7 @@
             return true;
         };
 
-        // App upload button handler (پেমেন্ট মোডের ক্ষেত্রে স্ট্যাটাস সবসময় Pending থাকবে)
+        // App upload button handler
         document.getElementById('btn-submit-app').addEventListener('click', () => {
             const name = document.getElementById('input-app-name').value.trim();
             const appLink = document.getElementById('input-app-link').value.trim();
@@ -1065,7 +1160,6 @@
                 if(!senderNum || !trxId) return window.showToast("Please enter your mobile number and TrxID!");
             }
 
-            // এখানে পেড পেমেন্টের ক্ষেত্রে স্ট্যাটাস 'Pending' করা হয়েছে, যাতে সরাসরি লাইভ না হয়ে যায়
             const initialStatus = isPaidUploadMode ? 'Pending' : 'Active';
             const selectedTestersCount = currentUploadCost === 60 ? 12 : 15;
 
@@ -1083,7 +1177,7 @@
                 amountPaid: isPaidUploadMode ? `৳${currentPriceBDT}` : '0',
                 uploadedBy: userId,
                 deviceId: deviceId,
-                status: initialStatus, // 'Pending' স্ট্যাটাসে থাকবে যতক্ষণ না এডমিন অ্যাপ্রুভ করে
+                status: initialStatus,
                 createdAt: Date.now()
             }).then(() => {
                 if(isPaidUploadMode) {
@@ -1117,7 +1211,7 @@
         window.switchTab = (tab, btn) => {
             if(!window.canNavigateToTab(tab)) return;
 
-            ['home', 'tasks', 'upload', 'profile'].forEach(t => document.getElementById(`tab-${t}`).classList.add('hide'));
+            ['home', 'tasks', 'upload', 'myapps', 'profile'].forEach(t => document.getElementById(`tab-${t}`).classList.add('hide'));
             document.getElementById(`tab-${tab}`).classList.remove('hide');
 
             const uploadBar = document.getElementById('bottom-upload-bar');
