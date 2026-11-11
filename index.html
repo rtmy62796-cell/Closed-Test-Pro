@@ -58,8 +58,8 @@
         </div>
 
         <!-- Big Rules & Notification Modal -->
-        <div id="rules-notification-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-5">
-            <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-left space-y-4 shadow-2xl border border-gray-100 animate-fade-in">
+        <div id="rules-notification-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-5 hide">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-left space-y-4 shadow-2xl border border-gray-100">
                 <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mx-auto font-bold shadow-xs">
                     <i class="fa-solid fa-circle-exclamation"></i>
                 </div>
@@ -128,8 +128,9 @@
         <div class="sticky top-0 px-5 py-3 flex justify-between items-center bg-white z-20 border-b border-gray-50 shadow-xs">
             <h1 class="text-xl font-extrabold text-[#1a1f36] tracking-tight">Closed Test Pro</h1>
             <div class="flex items-center gap-2">
-                <button onclick="openHelplineModal()" class="bg-blue-50 text-blue-600 p-2 rounded-full hover:bg-blue-100 transition shadow-xs cursor-pointer" title="Admin Helpline">
+                <button onclick="openHelplineModal()" class="relative bg-blue-50 text-blue-600 p-2 rounded-full hover:bg-blue-100 transition shadow-xs cursor-pointer" title="Admin Helpline">
                     <i class="fa-solid fa-headset text-sm"></i>
+                    <span id="helpline-unread-badge" class="absolute -top-1 -right-1 bg-red-600 text-white font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center hide">0</span>
                 </button>
                 <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full shadow-xs">
                     <span class="text-amber-500 font-bold">🪙</span>
@@ -444,9 +445,10 @@
         const db = getDatabase(app);
 
         let currentUser = JSON.parse(localStorage.getItem('tester_logged_user')) || null;
-        let userId = currentUser ? currentUser.id : null;
         let deviceId = localStorage.getItem('device_id_token') || `DEV-${Math.floor(100000 + Math.random() * 900000)}`;
         localStorage.setItem('device_id_token', deviceId);
+
+        let userId = `user_${deviceId.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
         let userCoins = 0;
         let testedAppsCount = 0;
@@ -470,6 +472,22 @@
 
         document.getElementById('profile-device-id').innerText = deviceId;
 
+        // ব্রাউজার পুশ নোটিফিকেশন পার্মিশন চাওয়া (ইমুর মতো ওপরের শাটারে দেখানোর জন্য)
+        if ("Notification" in window && Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+
+        function showBrowserNotification(title, bodyText) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: bodyText,
+                    icon: "https://cdn-icons-png.flaticon.com/512/3246/3246731.png"
+                });
+            } else {
+                window.showToast(bodyText);
+            }
+        }
+
         const savedLang = localStorage.getItem('app_language') || 'en';
         document.getElementById('language-selector').value = savedLang;
 
@@ -480,7 +498,7 @@
 
         if(currentUser) {
             authScreenEl.classList.add('hide');
-            initUserData(currentUser.id, currentUser.name, currentUser.email);
+            initUserData(userId, currentUser.name, currentUser.email);
             checkFirstLaunchNotice();
         }
 
@@ -495,19 +513,44 @@
             document.getElementById('rules-notification-modal').classList.add('hide');
         };
 
+        // ব্রডকাস্ট নোটিশ আসলে ফোনের ওপরের শাটারে পুশ নোটিফিকেশন পাঠানো
+        onValue(ref(db, 'global_broadcast'), (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.text) {
+                const lastSeenNoticeId = localStorage.getItem('last_seen_broadcast_id');
+                if (lastSeenNoticeId !== data.id) {
+                    localStorage.setItem('last_seen_broadcast_id', data.id);
+                    showBrowserNotification("📢 Important Notice", data.text);
+                }
+            }
+        });
+
+        // নতুন অ্যাপ আপলোড হলে ফোনের ওপরের শাটারে পুশ নোটিফিকেশন পাঠানো
+        onValue(ref(db, 'latest_app_notification'), (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.id) {
+                const lastSeenAppNotice = localStorage.getItem('last_seen_app_notice_id');
+                if (lastSeenAppNotice !== data.id) {
+                    localStorage.setItem('last_seen_app_notice_id', data.id);
+                    showBrowserNotification("🚀 New App Uploaded!", `A new app "${data.appName}" has been uploaded by ${data.devName}. Test it now!`);
+                }
+            }
+        });
+
         window.handleGoogleSignIn = () => {
             const provider = new GoogleAuthProvider();
             signInWithPopup(auth, provider)
                 .then((result) => {
                     const user = result.user;
+                    const realUserName = user.displayName || "Tester";
                     const loggedUser = {
-                        id: `user_${user.uid}`,
-                        name: user.displayName || "Tester",
-                        email: user.email || "user@gmail.com"
+                        id: userId,
+                        name: realUserName,
+                        email: user.email || "user@gmail.com",
+                        deviceId: deviceId
                     };
                     localStorage.setItem('tester_logged_user', JSON.stringify(loggedUser));
                     currentUser = loggedUser;
-                    userId = loggedUser.id;
                     
                     authScreenEl.classList.add('hide');
                     initUserData(userId, loggedUser.name, loggedUser.email);
@@ -515,13 +558,13 @@
                 })
                 .catch((error) => {
                     const mockUser = {
-                        id: `user_${deviceId.toLowerCase().replace(/-/g, '_')}`,
+                        id: userId,
                         name: "Md Ronju Pramanik",
-                        email: "mdronjupramanik30@gmail.com"
+                        email: "mdronjupramanik30@gmail.com",
+                        deviceId: deviceId
                     };
                     localStorage.setItem('tester_logged_user', JSON.stringify(mockUser));
                     currentUser = mockUser;
-                    userId = mockUser.id;
                     
                     authScreenEl.classList.add('hide');
                     initUserData(userId, mockUser.name, mockUser.email);
@@ -555,6 +598,14 @@
                     return;
                 }
 
+                if(data && data.unreadHelplineCount > 0) {
+                    const badge = document.getElementById('helpline-unread-badge');
+                    badge.innerText = data.unreadHelplineCount;
+                    badge.classList.remove('hide');
+                } else {
+                    document.getElementById('helpline-unread-badge').classList.add('hide');
+                }
+
                 const deviceBonusKey = `device_bonus_claimed_${deviceId}`;
                 const hasClaimedDeviceBonus = localStorage.getItem(deviceBonusKey);
 
@@ -583,7 +634,7 @@
                     if (!hasClaimedDeviceBonus) {
                         userCoins += 30;
                         localStorage.setItem(deviceBonusKey, "true");
-                        update(userRef, { coins: userCoins, deviceId });
+                        update(userRef, { coins: userCoins, deviceId, name, email });
                         window.showToast("Welcome! 30 Free Coins added!");
                     }
                 } else {
@@ -651,7 +702,11 @@
             profileCoinsEl.innerText = `${userCoins} Coins`;
         }
 
-        window.openHelplineModal = () => document.getElementById('helpline-modal').classList.remove('hide');
+        window.openHelplineModal = () => {
+            document.getElementById('helpline-modal').classList.remove('hide');
+            update(ref(db, `users/${userId}`), { unreadHelplineCount: 0 });
+            document.getElementById('helpline-unread-badge').classList.add('hide');
+        };
         window.closeHelplineModal = () => document.getElementById('helpline-modal').classList.add('hide');
 
         window.sendHelplineMessage = () => {
@@ -768,13 +823,15 @@
                 }
             });
 
+            // নতুন অ্যাপগুলো সবার উপরে শো করার জন্য সর্ট করা (Newest First)
+            allApps.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
             renderApps(allApps);
             renderDailyTestingApps(allApps);
             renderProfileActiveApps(allApps);
             renderMyAppsAnalytics(Object.keys(data).map(k => ({ id: k, ...data[k] })));
         });
 
-        // প্লে স্টোর ওপেন করা এবং কাস্টম প্যাকেজ স্কিম লিংক হ্যান্ডলার
         function launchAppOrPlayStore(appItem) {
             let targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
             let packageName = "";
@@ -815,13 +872,16 @@
                 const isAlreadyClaimed = (claimedApps && claimedApps[appItem.id]) || activeClaimingLock[appItem.id];
                 let actionBtnHTML = "";
 
+                // ১২ জন টেস্টার পূর্ণ হওয়ার পরে কয়েন ৫ থেকে কমে ৩ হওয়া
+                const currentJoinedCount = appItem.currentTesters || 0;
+                const rewardCoins = currentJoinedCount >= 12 ? 3 : 5;
+
                 if (isAlreadyClaimed) {
-                    actionBtnHTML = `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Claimed (+5)</span>`;
+                    actionBtnHTML = `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Claimed (+${rewardCoins})</span>`;
                 } else {
-                    actionBtnHTML = `<div class="flex flex-col items-end"><button id="btn-home-test-${appItem.id}" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-extrabold px-5 py-1.5 rounded-full text-xs transition cursor-pointer">Test</button><span class="text-[10px] text-amber-500 font-bold mt-1">+5 🪙</span></div>`;
+                    actionBtnHTML = `<div class="flex flex-col items-end"><button id="btn-home-test-${appItem.id}" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-extrabold px-5 py-1.5 rounded-full text-xs transition cursor-pointer">Test</button><span class="text-[10px] text-amber-500 font-bold mt-1">+${rewardCoins} 🪙</span></div>`;
                 }
 
-                const currentJoinedCount = appItem.currentTesters || 0;
                 const categoryName = appItem.category || 'App';
 
                 card.innerHTML = `
@@ -865,7 +925,7 @@
                             testBtn.className = "bg-emerald-100 text-emerald-700 font-extrabold px-4 py-1.5 rounded-full text-xs cursor-not-allowed";
 
                             const now = Date.now();
-                            userCoins += 5;
+                            userCoins += rewardCoins;
                             testedAppsCount += 1;
                             
                             const newCount = currentJoinedCount + 1;
@@ -887,12 +947,19 @@
                                 claimedApps: claimedApps
                             });
 
+                            const testerRecordRef = push(ref(db, `apps/${appItem.id}/testersList`));
+                            set(testerRecordRef, {
+                                deviceId: deviceId,
+                                email: currentUser ? currentUser.email : 'N/A',
+                                timestamp: now
+                            });
+
                             update(ref(db, `apps/${appItem.id}`), {
                                 currentTesters: newCount,
                                 milestoneReachedAt: milestoneTime
                             });
                             
-                            window.showToast("App claimed! +5 Coins added ✔");
+                            window.showToast(`App claimed! +${rewardCoins} Coins added ✔`);
                             launchAppOrPlayStore(appItem);
                         });
                     }
@@ -922,12 +989,28 @@
                 const currentTesters = appItem.currentTesters || 0;
                 const uninstallsCount = appItem.uninstalls || 0;
                 const hasIssue = appItem.accessIssue || false;
-                const issueMessage = appItem.issueText || "Main reason: Not available in tester countries. Please open Play Console -> Testing -> Closed testing -> Countries/regions and add all.";
+                const issueMessage = appItem.issueText || "Main reason: Not available in tester countries.";
 
                 const initials = appItem.name ? appItem.name.substring(0, 2).toUpperCase() : 'AP';
                 const iconHTML = appItem.icon 
                     ? `<img src="${appItem.icon}" class="w-12 h-12 rounded-2xl object-cover shrink-0 shadow-xs">` 
                     : `<div class="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center text-white text-base font-bold shrink-0 shadow-xs">${initials}</div>`;
+
+                let testersListHTML = '';
+                if (appItem.testersList) {
+                    const testersArray = Object.values(appItem.testersList);
+                    testersArray.forEach((tester, index) => {
+                        let formattedDate = new Date(tester.timestamp).toLocaleString();
+                        testersListHTML += `
+                            <div class="flex justify-between items-center bg-gray-50 p-2 rounded-xl text-[11px] border border-gray-100 font-mono mb-1">
+                                <span>${index + 1}. Dev ID: <b>${tester.deviceId}</b></span>
+                                <span class="text-gray-500">${formattedDate}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    testersListHTML = `<p class="text-[11px] text-gray-400 italic">No devices claimed yet.</p>`;
+                }
 
                 const card = document.createElement('div');
                 card.className = "bg-white p-4 rounded-3xl border border-gray-100 shadow-sm space-y-4";
@@ -953,21 +1036,24 @@
                     </div>
                     ` : ''}
 
-                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-3">
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-2">
                         <div class="flex justify-between items-center text-xs font-bold text-gray-700">
-                            <span>Statistics</span>
-                            <span class="text-[10px] text-gray-400 font-medium">Real-time tracking</span>
+                            <span>Testing Devices List (Serial by Serial)</span>
+                            <span class="text-[10px] text-blue-600 font-medium">Real-time</span>
                         </div>
-                        
-                        <div class="grid grid-cols-2 gap-2 text-center">
-                            <div class="bg-white p-2.5 rounded-xl border border-gray-100">
-                                <span class="text-[10px] text-gray-400 block font-semibold">Total Testers</span>
-                                <span class="text-base font-extrabold text-gray-900 mt-0.5 block">${currentTesters}</span>
-                            </div>
-                            <div class="bg-white p-2.5 rounded-xl border border-gray-100">
-                                <span class="text-[10px] text-gray-400 block font-semibold">Uninstalls</span>
-                                <span class="text-base font-extrabold text-gray-900 mt-0.5 block">${uninstallsCount}</span>
-                            </div>
+                        <div class="max-h-36 overflow-y-auto no-scrollbar space-y-1">
+                            ${testersListHTML}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-center">
+                        <div class="bg-white p-2.5 rounded-xl border border-gray-100">
+                            <span class="text-[10px] text-gray-400 block font-semibold">Total Testers</span>
+                            <span class="text-base font-extrabold text-gray-900 mt-0.5 block">${currentTesters}</span>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-xl border border-gray-100">
+                            <span class="text-[10px] text-gray-400 block font-semibold">Uninstalls</span>
+                            <span class="text-base font-extrabold text-gray-900 mt-0.5 block">${uninstallsCount}</span>
                         </div>
                     </div>
                 `;
@@ -1076,7 +1162,6 @@
             }
         }
 
-        // 30 Seconds Countdown with Page Visibility Strict Checking
         function startDaily30SecondCheck(appItem) {
             const modal = document.getElementById('trial-timer-modal');
             const titleEl = document.getElementById('trial-app-title');
@@ -1092,7 +1177,6 @@
 
             if(activeTimerInterval) clearInterval(activeTimerInterval);
 
-            // ইউজার ব্রাউজারে ফিরে আসলে টাইমার হ্যান্ডেল করার লজিক (Page Visibility Check)
             const handleVisibilityChange = () => {
                 if (!document.hidden && timeLeft > 0) {
                     clearInterval(activeTimerInterval);
@@ -1191,13 +1275,11 @@
             return true;
         };
 
-        // আপলোডের সময় প্লে কনসোল টেস্টিং লিংক ফিল্টার ও চেক
         function handleCoinUploadAction() {
             const name = document.getElementById('input-app-name').value.trim();
             const appLink = document.getElementById('input-app-link').value.trim();
             if (!name || !appLink) return window.showToast("Please enter app name and link!");
 
-            // প্লে কনসোল ওয়েব টেস্টিং লিংকের সুনির্দিষ্ট ভ্যালিডেশন
             const googlePlayRegex = /^https:\/\/play\.google\.com\/apps\/testing\/[a-zA-Z0-9_.]+/;
             if (!googlePlayRegex.test(appLink)) {
                 return window.showToast("❌ Invalid Link! Only Play Console Opt-in link (https://play.google.com/apps/testing/...) is allowed.");
@@ -1207,7 +1289,10 @@
             userCoins -= currentUploadCost;
             update(ref(db, `users/${userId}`), { coins: userCoins });
 
-            push(ref(db, 'apps'), {
+            const newAppRef = push(ref(db, 'apps'));
+            const uploadTime = Date.now();
+
+            set(newAppRef, {
                 name,
                 link: appLink,
                 category: document.getElementById('input-category').value || 'General',
@@ -1224,9 +1309,17 @@
                 uploadedBy: userId,
                 deviceId: deviceId,
                 status: 'Active',
-                createdAt: Date.now()
+                createdAt: uploadTime
             }).then(() => {
-                window.showToast("App Uploaded Successfully!");
+                // নতুন অ্যাপ আপলোড হলে ওপরের শাটারে পুশ নোটিফিকেশন ট্রিগার করা
+                set(ref(db, 'latest_app_notification'), {
+                    id: "app_notice_" + uploadTime,
+                    appName: name,
+                    devName: currentUser ? currentUser.name : "Developer",
+                    timestamp: uploadTime
+                });
+
+                window.showToast("App Uploaded Successfully & Notification Sent!");
                 clearUploadInputs();
                 switchTab('tasks', document.querySelectorAll('.nav-btn')[0]);
             });
