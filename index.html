@@ -41,18 +41,26 @@
                         <i class="fa-solid fa-users text-blue-600"></i> Mandatory Step: Join Google Group
                     </div>
                     <p class="text-[11px] text-gray-600">You must join our tester group first to participate in closed testing:</p>
-                    <div class="bg-white p-2.5 rounded-2xl border border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-2">
-                        <span id="auth-group-email" class="font-mono text-xs font-bold text-gray-800 break-all">mdmsronju@googlegroups.com</span>
-                        <a id="auth-group-link" href="https://groups.google.com/g/mdmsronju" target="_blank" class="w-full sm:w-auto bg-blue-600 text-white text-[11px] px-3 py-2 rounded-xl font-sans font-bold flex items-center justify-center gap-1 shrink-0">
-                            <i class="fa-solid fa-user-plus text-[10px]"></i> Join Group
-                        </a>
+                    <div class="bg-[#111317] text-gray-100 p-4 rounded-3xl shadow-md space-y-2.5 text-left">
+                        <div class="flex items-center justify-between text-xs text-gray-400">
+                            <span class="font-semibold tracking-wide">google-group</span>
+                            <button type="button" onclick="copyText('auth-group-email', 'Google Group email copied!')" class="text-gray-300 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer" title="Copy">
+                                <i class="fa-regular fa-copy text-sm"></i>
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto no-scrollbar">
+                            <code id="auth-group-email" class="font-mono text-xs font-bold text-white whitespace-nowrap select-all">mdmsronju@googlegroups.com</code>
+                        </div>
                     </div>
+                    <a id="auth-group-link" href="https://groups.google.com/g/mdmsronju" target="_blank" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 px-4 rounded-2xl font-sans font-bold flex items-center justify-center gap-1.5 shadow-xs transition">
+                        <i class="fa-solid fa-user-plus text-[11px]"></i> Join Google Group
+                    </a>
                 </div>
             </div>
 
             <div class="pt-4 pb-2 bg-white">
-                <button onclick="handleGoogleSignIn()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-2xl shadow-md text-sm flex items-center justify-center gap-2 transition cursor-pointer">
-                    <i class="fa-brands fa-google text-base"></i> Sign in with Google
+                <button id="google-signin-btn" onclick="handleGoogleSignIn()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-2xl shadow-md text-sm flex items-center justify-center gap-2 transition cursor-pointer">
+                    <i class="fa-brands fa-google text-base"></i> <span id="signin-btn-text">Sign in with Google</span>
                 </button>
             </div>
         </div>
@@ -194,11 +202,16 @@
                         <p class="text-xs text-gray-600 mt-1 leading-relaxed">Join the group first, then copy the email to add as a tester in your Google Play Console.</p>
                     </div>
 
-                    <div class="bg-white rounded-2xl p-3 flex items-center justify-between border border-gray-100 shadow-xs">
-                        <span id="group-email" class="font-mono text-xs font-bold text-gray-800 break-all">mdmsronju@googlegroups.com</span>
-                        <button onclick="copyGroupEmail()" class="bg-blue-50 text-blue-600 text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 hover:bg-blue-100 transition shrink-0 cursor-pointer">
-                            <i class="fa-regular fa-copy"></i> Copy
-                        </button>
+                    <div class="bg-[#111317] text-gray-100 p-4 rounded-3xl shadow-md space-y-2.5">
+                        <div class="flex items-center justify-between text-xs text-gray-400">
+                            <span class="font-semibold tracking-wide">google-group</span>
+                            <button type="button" onclick="copyGroupEmail()" class="text-gray-300 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer" title="Copy">
+                                <i class="fa-regular fa-copy text-sm"></i>
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto no-scrollbar">
+                            <code id="group-email" class="font-mono text-xs font-bold text-white whitespace-nowrap select-all">mdmsronju@googlegroups.com</code>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -280,9 +293,16 @@
                     <!-- bKash / Nagad Detailed Box -->
                     <div id="section-paid-details" class="space-y-3 hide bg-white p-4 rounded-2xl border border-gray-200 text-xs shadow-xs">
                         <div class="bg-pink-50 border border-pink-100 p-3 rounded-xl space-y-1">
-                            <div class="flex justify-between text-gray-800 font-bold">
-                                <span>Send Money To (<span id="display-payment-method">bKash/Nagad</span>):</span>
-                                <span id="display-payment-number" class="text-pink-600 font-mono font-extrabold text-sm">017XXXXXXXX</span>
+                            <div class="bg-[#111317] text-gray-100 p-3.5 rounded-2xl shadow-sm space-y-1.5">
+                                <div class="flex items-center justify-between text-[11px] text-gray-400">
+                                    <span id="display-payment-method" class="font-semibold">bKash/Nagad</span>
+                                    <button type="button" onclick="copyText('display-payment-number', 'Payment number copied!')" class="text-gray-300 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer" title="Copy">
+                                        <i class="fa-regular fa-copy text-xs"></i>
+                                    </button>
+                                </div>
+                                <div class="overflow-x-auto no-scrollbar">
+                                    <code id="display-payment-number" class="text-emerald-400 font-mono font-extrabold text-sm whitespace-nowrap select-all">017XXXXXXXX</code>
+                                </div>
                             </div>
                             <p class="text-[11px] text-gray-600 font-medium">Please send <span id="payment-amount-display" class="font-extrabold text-pink-600">৳60</span> for this package, then enter your sender number and Transaction ID (TrxID) below.</p>
                         </div>
@@ -322,8 +342,8 @@
                             <i class="fa-solid fa-user"></i>
                         </div>
                         <div>
-                            <h3 id="profile-name" class="font-extrabold text-gray-900 text-sm">Md Ronju</h3>
-                            <p id="profile-email" class="text-xs text-gray-400 font-medium">mdronjupramanik30@gmail.com</p>
+                            <h3 id="profile-name" class="font-extrabold text-gray-900 text-sm">User</h3>
+                            <p id="profile-email" class="text-xs text-gray-400 font-medium">user@gmail.com</p>
                         </div>
                     </div>
 
@@ -338,9 +358,16 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-2">
-                            <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                                <span class="text-gray-400 block font-semibold text-[10px]">Device Identifier</span>
-                                <span class="font-mono font-extrabold text-blue-600 text-xs mt-0.5 block" id="profile-device-id">DEV-9806578</span>
+                            <div class="bg-[#111317] text-gray-100 p-3 rounded-2xl shadow-sm space-y-1">
+                                <div class="flex items-center justify-between text-[10px] text-gray-400">
+                                    <span class="font-semibold">device-id</span>
+                                    <button type="button" onclick="copyText('profile-device-id', 'Device ID copied!')" class="text-gray-300 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer" title="Copy Device ID">
+                                        <i class="fa-regular fa-copy text-xs"></i>
+                                    </button>
+                                </div>
+                                <div class="overflow-x-auto no-scrollbar">
+                                    <code class="font-mono font-extrabold text-blue-400 text-xs whitespace-nowrap select-all" id="profile-device-id">DEV-000000</code>
+                                </div>
                             </div>
                             <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100">
                                 <span class="text-gray-400 block font-semibold text-[10px]">Current Balance</span>
@@ -426,8 +453,8 @@
     <!-- Firebase Logic & App Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getDatabase, ref, set, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, signInWithRedirect, getRedirectResult, onAuthStateChanged, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyDFtz43qQjAFffDPmwR1lJUqv0h3nMJl1U",
@@ -448,7 +475,7 @@
         let deviceId = localStorage.getItem('device_id_token') || `DEV-${Math.floor(100000 + Math.random() * 900000)}`;
         localStorage.setItem('device_id_token', deviceId);
 
-        let userId = `user_${deviceId.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        let userId = currentUser ? currentUser.id : `user_${deviceId.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
         let userCoins = 0;
         let testedAppsCount = 0;
@@ -462,6 +489,7 @@
         let selectedAppForReport = null;
         let activeClaimingLock = {};
         let activeTimerInterval = null;
+        let isUserInitialized = false;
 
         const coinBalanceEl = document.getElementById('coin-balance');
         const profileCoinsEl = document.getElementById('profile-coins');
@@ -472,7 +500,6 @@
 
         document.getElementById('profile-device-id').innerText = deviceId;
 
-        // ব্রাউজার পুশ নোটিফিকেশন পার্মিশন চাওয়া (ইমুর মতো ওপরের শাটারে দেখানোর জন্য)
         if ("Notification" in window && Notification.permission !== "granted") {
             Notification.requestPermission();
         }
@@ -496,12 +523,6 @@
             window.showToast(`Language switched to ${lang.toUpperCase()}`);
         };
 
-        if(currentUser) {
-            authScreenEl.classList.add('hide');
-            initUserData(userId, currentUser.name, currentUser.email);
-            checkFirstLaunchNotice();
-        }
-
         function checkFirstLaunchNotice() {
             if(!localStorage.getItem('first_launch_notice_done')) {
                 document.getElementById('rules-notification-modal').classList.remove('hide');
@@ -513,7 +534,7 @@
             document.getElementById('rules-notification-modal').classList.add('hide');
         };
 
-        // ব্রডকাস্ট নোটিশ আসলে ফোনের ওপরের শাটারে পুশ নোটিফিকেশন পাঠানো
+        // ব্রডকাস্ট নোটিশ
         onValue(ref(db, 'global_broadcast'), (snapshot) => {
             const data = snapshot.val();
             if (data && data.text) {
@@ -525,7 +546,7 @@
             }
         });
 
-        // নতুন অ্যাপ আপলোড হলে ফোনের ওপরের শাটারে পুশ নোটিফিকেশন পাঠানো
+        // নতুন অ্যাপ আপলোড নোটিফিকেশন
         onValue(ref(db, 'latest_app_notification'), (snapshot) => {
             const data = snapshot.val();
             if (data && data.id) {
@@ -537,40 +558,77 @@
             }
         });
 
+        // লগইন হওয়ার পর কাস্টমারের আসল তথ্য এবং ইউনিক আইডি প্রসেস করার ফাংশন
+        function completeUserLogin(firebaseUser) {
+            if (isUserInitialized) return;
+            isUserInitialized = true;
+
+            // ইউজারের আসল Firebase UID ব্যবহার করা হচ্ছে যাতে একই জিমেইল বারবার লগইন করলে ডুপ্লিকেট না হয়
+            userId = firebaseUser.uid;
+            const realName = firebaseUser.displayName || "Tester";
+            const realEmail = firebaseUser.email || "no-email@gmail.com";
+            const photoURL = firebaseUser.photoURL || "";
+
+            const loggedUser = {
+                id: userId,
+                name: realName,
+                email: realEmail,
+                photoURL: photoURL,
+                deviceId: deviceId
+            };
+
+            localStorage.setItem('tester_logged_user', JSON.stringify(loggedUser));
+            currentUser = loggedUser;
+
+            authScreenEl.classList.add('hide');
+            initUserData(userId, realName, realEmail, photoURL);
+            checkFirstLaunchNotice();
+        }
+
+        // ১. রিডাইরেক্ট থেকে ফিরে আসার পর রেজাল্ট চেক করা
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result && result.user) {
+                    completeUserLogin(result.user);
+                    window.showToast("Signed in with Google successfully!");
+                }
+            })
+            .catch((error) => {
+                console.error("Redirect Sign-In Error:", error);
+                const btnText = document.getElementById('signin-btn-text');
+                if (btnText) btnText.innerText = "Sign in with Google";
+                window.showToast("Sign-in failed: " + error.message);
+            });
+
+        // ২. অটোমেটিক সেশন চেক (একবার লগইন করলে আর পাসওয়ার্ড বা পপআপ লাগবে না)
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                completeUserLogin(user);
+            } else if (currentUser && currentUser.id && !currentUser.id.startsWith('user_dev')) {
+                authScreenEl.classList.add('hide');
+                initUserData(currentUser.id, currentUser.name, currentUser.email, currentUser.photoURL || "");
+                checkFirstLaunchNotice();
+            }
+        });
+
+        // ৩. গুগল সাইন-ইন বাটন ক্লিক (Redirect মেথড, যাতে ফোনের জিমেইলে টাচ করলেই অটো লগইন হয়)
         window.handleGoogleSignIn = () => {
+            const btn = document.getElementById('google-signin-btn');
+            const btnText = document.getElementById('signin-btn-text');
+            btn.disabled = true;
+            btnText.innerText = "Connecting to Google...";
+
             const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    const user = result.user;
-                    const realUserName = user.displayName || "Tester";
-                    const loggedUser = {
-                        id: userId,
-                        name: realUserName,
-                        email: user.email || "user@gmail.com",
-                        deviceId: deviceId
-                    };
-                    localStorage.setItem('tester_logged_user', JSON.stringify(loggedUser));
-                    currentUser = loggedUser;
-                    
-                    authScreenEl.classList.add('hide');
-                    initUserData(userId, loggedUser.name, loggedUser.email);
-                    checkFirstLaunchNotice();
-                })
-                .catch((error) => {
-                    const mockUser = {
-                        id: userId,
-                        name: "Md Ronju Pramanik",
-                        email: "mdronjupramanik30@gmail.com",
-                        deviceId: deviceId
-                    };
-                    localStorage.setItem('tester_logged_user', JSON.stringify(mockUser));
-                    currentUser = mockUser;
-                    
-                    authScreenEl.classList.add('hide');
-                    initUserData(userId, mockUser.name, mockUser.email);
-                    checkFirstLaunchNotice();
-                    window.showToast("Signed in successfully!");
-                });
+            // ফোনে অলরেডি লগইন থাকা অ্যাকাউন্ট সরাসরি সিলেক্ট করার অপশন
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
+
+            signInWithRedirect(auth, provider).catch((error) => {
+                btn.disabled = false;
+                btnText.innerText = "Sign in with Google";
+                window.showToast("Error: " + error.message);
+            });
         };
 
         window.handleLogout = () => {
@@ -583,7 +641,7 @@
             });
         };
 
-        function initUserData(uid, name, email) {
+        function initUserData(uid, name, email, photoURL = "") {
             document.getElementById('profile-name').innerText = name;
             document.getElementById('profile-email').innerText = email;
 
@@ -627,23 +685,61 @@
                         }
                     });
 
+                    // একই ইউজারের ডিভাইস আইডি লিস্টে বর্তমান ডিভাইসটি ইউনিকভাবে সেভ রাখা (ডুপ্লিকেট হবে না)
+                    let userDevices = data.devices || {};
+                    userDevices[deviceId] = {
+                        deviceId: deviceId,
+                        lastActive: now
+                    };
+
+                    let updatesToSave = {
+                        name: name,
+                        email: email,
+                        photoURL: photoURL,
+                        deviceId: deviceId,
+                        devices: userDevices,
+                        lastLogin: now
+                    };
+
                     if (hasExpired) {
-                        update(userRef, { claimedApps: claimedApps });
+                        updatesToSave.claimedApps = claimedApps;
                     }
 
-                    if (!hasClaimedDeviceBonus) {
+                    if (!hasClaimedDeviceBonus && !data.bonusClaimed) {
                         userCoins += 30;
                         localStorage.setItem(deviceBonusKey, "true");
-                        update(userRef, { coins: userCoins, deviceId, name, email });
+                        updatesToSave.coins = userCoins;
+                        updatesToSave.bonusClaimed = true;
                         window.showToast("Welcome! 30 Free Coins added!");
                     }
+
+                    update(userRef, updatesToSave);
                 } else {
-                    let initialCoins = 30;
+                    let initialCoins = hasClaimedDeviceBonus ? 0 : 30;
                     localStorage.setItem(deviceBonusKey, "true");
-                    set(userRef, { coins: initialCoins, testedCount: 0, name, email, deviceId, claimedApps: {}, createdAt: Date.now() });
+                    const now = Date.now();
+
+                    set(userRef, { 
+                        uid: uid,
+                        coins: initialCoins, 
+                        testedCount: 0, 
+                        name: name, 
+                        email: email, 
+                        photoURL: photoURL,
+                        deviceId: deviceId,
+                        devices: {
+                            [deviceId]: { deviceId: deviceId, lastActive: now }
+                        },
+                        bonusClaimed: true,
+                        claimedApps: {}, 
+                        createdAt: now,
+                        lastLogin: now
+                    });
                     userCoins = initialCoins;
                     claimedApps = {};
-                    window.showToast("Welcome! 30 Free Coins added!");
+                    if (initialCoins > 0) {
+                        window.showToast("Welcome! 30 Free Coins added!");
+                    }
                 }
                 updateUserUI();
             });
@@ -662,7 +758,7 @@
                     const bubble = document.createElement('div');
                     bubble.className = `flex flex-col ${isUser ? 'items-end' : 'items-start'}`;
                     bubble.innerHTML = `
-                        <div class="max-w-[80%] p-2.5 rounded-2xl text-[11px] font-medium ${isUser ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-xs shadow-xs'}">
+                        <div onclick="copyRawText(this.innerText, 'Message copied!')" title="Tap to copy" class="max-w-[80%] p-2.5 rounded-2xl text-[11px] font-medium select-all cursor-pointer ${isUser ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-xs shadow-xs'}">
                             ${msg.text}
                         </div>
                         <span class="text-[9px] text-gray-400 mt-0.5 px-1">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -823,7 +919,6 @@
                 }
             });
 
-            // নতুন অ্যাপগুলো সবার উপরে শো করার জন্য সর্ট করা (Newest First)
             allApps.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
             renderApps(allApps);
@@ -872,7 +967,6 @@
                 const isAlreadyClaimed = (claimedApps && claimedApps[appItem.id]) || activeClaimingLock[appItem.id];
                 let actionBtnHTML = "";
 
-                // ১২ জন টেস্টার পূর্ণ হওয়ার পরে কয়েন ৫ থেকে কমে ৩ হওয়া
                 const currentJoinedCount = appItem.currentTesters || 0;
                 const rewardCoins = currentJoinedCount >= 12 ? 3 : 5;
 
@@ -900,9 +994,14 @@
                     </div>
                     <div class="flex flex-col items-end gap-2">
                         ${actionBtnHTML}
-                        <button onclick="openReportModal('${appItem.id}', '${appItem.name}')" class="text-[10px] font-bold text-gray-400 hover:text-red-500 flex items-center gap-1 mt-1 cursor-pointer">
-                            <i class="fa-solid fa-flag"></i> Report
-                        </button>
+                        <div class="flex items-center gap-2 mt-1">
+                            <button onclick="copyRawText('${(appItem.link || '').replace(/'/g, "\\'")}', 'Testing link copied!')" class="text-[10px] font-bold text-gray-400 hover:text-blue-600 flex items-center gap-1 cursor-pointer">
+                                <i class="fa-regular fa-copy"></i> Link
+                            </button>
+                            <button onclick="openReportModal('${appItem.id}', '${appItem.name}')" class="text-[10px] font-bold text-gray-400 hover:text-red-500 flex items-center gap-1 cursor-pointer">
+                                <i class="fa-solid fa-flag"></i> Report
+                            </button>
+                        </div>
                     </div>
                 `;
                 homeAppListEl.appendChild(card);
@@ -947,8 +1046,10 @@
                                 claimedApps: claimedApps
                             });
 
-                            const testerRecordRef = push(ref(db, `apps/${appItem.id}/testersList`));
-                            set(testerRecordRef, {
+                            // ইউজার আইডি দিয়ে সেভ করা যাতে একই ইউজার ডুপ্লিকেট না হয়
+                            set(ref(db, `apps/${appItem.id}/testersList/${userId}`), {
+                                userId: userId,
+                                name: currentUser ? currentUser.name : 'Tester',
                                 deviceId: deviceId,
                                 email: currentUser ? currentUser.email : 'N/A',
                                 timestamp: now
@@ -1002,9 +1103,14 @@
                     testersArray.forEach((tester, index) => {
                         let formattedDate = new Date(tester.timestamp).toLocaleString();
                         testersListHTML += `
-                            <div class="flex justify-between items-center bg-gray-50 p-2 rounded-xl text-[11px] border border-gray-100 font-mono mb-1">
-                                <span>${index + 1}. Dev ID: <b>${tester.deviceId}</b></span>
-                                <span class="text-gray-500">${formattedDate}</span>
+                            <div class="flex justify-between items-center bg-gray-50 p-2 rounded-xl text-[11px] border border-gray-100 font-mono mb-1 gap-1">
+                                <span class="select-all truncate">${index + 1}. <b>${tester.name || tester.deviceId}</b> (${tester.email || ''})</span>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <span class="text-gray-500 text-[10px]">${formattedDate}</span>
+                                    <button type="button" onclick="copyRawText('${(tester.email || tester.deviceId || '').replace(/'/g, "\\'")}', 'Tester info copied!')" class="text-blue-600 hover:text-blue-800 px-1 cursor-pointer" title="Copy">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                </div>
                             </div>
                         `;
                     });
@@ -1255,6 +1361,8 @@
                 appId: selectedAppForReport.id,
                 appName: selectedAppForReport.name,
                 userId: userId,
+                userName: currentUser ? currentUser.name : 'User',
+                userEmail: currentUser ? currentUser.email : '',
                 deviceId: deviceId,
                 issue: reportText,
                 status: 'Pending',
@@ -1307,11 +1415,11 @@
                 trxId: 'N/A',
                 amountPaid: '0',
                 uploadedBy: userId,
+                uploaderEmail: currentUser ? currentUser.email : '',
                 deviceId: deviceId,
                 status: 'Active',
                 createdAt: uploadTime
             }).then(() => {
-                // নতুন অ্যাপ আপলোড হলে ওপরের শাটারে পুশ নোটিফিকেশন ট্রিগার করা
                 set(ref(db, 'latest_app_notification'), {
                     id: "app_notice_" + uploadTime,
                     appName: name,
@@ -1346,6 +1454,7 @@
                 trxId: trxId,
                 amountPaid: `৳${currentPriceBDT}`,
                 uploadedBy: userId,
+                uploaderEmail: currentUser ? currentUser.email : '',
                 deviceId: deviceId,
                 status: 'Pending',
                 createdAt: Date.now()
@@ -1375,9 +1484,44 @@
         }
         window.showToast = showToast;
 
+        function copyRawText(text, successMsg = "Copied to clipboard!") {
+            if (!text) return;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(successMsg);
+                }).catch(() => fallbackCopy(text, successMsg));
+            } else {
+                fallbackCopy(text, successMsg);
+            }
+        }
+
+        function fallbackCopy(text, successMsg) {
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            tempInput.style.position = "fixed";
+            tempInput.style.left = "-9999px";
+            document.body.appendChild(tempInput);
+            tempInput.focus();
+            tempInput.select();
+            try {
+                document.execCommand("copy");
+                showToast(successMsg);
+            } catch (err) {
+                showToast("Failed to copy!");
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        function copyText(elementId, successMsg = "Copied to clipboard!") {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            copyRawText(el.innerText.trim(), successMsg);
+        }
+        window.copyText = copyText;
+        window.copyRawText = copyRawText;
+
         function copyGroupEmail() {
-            navigator.clipboard.writeText(document.getElementById('group-email').innerText);
-            showToast("Google Group copied to clipboard!");
+            copyText('group-email', "Google Group copied to clipboard!");
         }
 
         window.switchTab = (tab, btn) => {
