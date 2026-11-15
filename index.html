@@ -117,7 +117,7 @@
             </div>
         </div>
 
-        <!-- Install Verification Modal (Step 2 before earning 5 coins) -->
+        <!-- Install & Verify Modal (One Button Flow) -->
         <div id="install-verify-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-xs z-50 flex items-center justify-center p-5 hide">
             <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl border border-blue-100">
                 <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mx-auto font-bold">
@@ -125,26 +125,22 @@
                 </div>
                 <div class="space-y-1.5">
                     <h3 class="font-extrabold text-gray-900 text-base" id="verify-modal-app-name">Install & Verify App</h3>
-                    <p class="text-xs text-gray-600 leading-relaxed" id="verify-modal-desc">
-                        1. Install the app from Google Play Store.<br>
-                        2. Open the installed app once.<br>
-                        3. Return here and tap <b>Verify Installation</b> to unlock your coins!
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        1. Tap the button below to go to Play Store & install the app.<br>
+                        2. After installing, return here and tap <b>Verify & Claim Coins</b>.
                     </p>
                 </div>
                 <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11px] text-amber-800 font-semibold">
                     ⚠️ Coins will NOT be credited if the app is not installed on your phone.
                 </div>
-                <div class="grid grid-cols-2 gap-2 pt-1">
-                    <button id="btn-reopen-store" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold py-3 rounded-2xl text-xs cursor-pointer transition">
-                        Open Play Store
+                <div class="space-y-2 pt-1">
+                    <button id="btn-confirm-installed" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl text-xs shadow-md cursor-pointer transition">
+                        Verify & Claim Coins ✔
                     </button>
-                    <button id="btn-confirm-installed" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-2xl text-xs shadow-md cursor-pointer transition">
-                        Verify Installation ✔
+                    <button onclick="closeInstallVerifyModal()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold py-2.5 rounded-2xl text-xs cursor-pointer transition">
+                        Cancel
                     </button>
                 </div>
-                <button onclick="closeInstallVerifyModal()" class="text-[11px] text-gray-400 hover:text-gray-600 font-bold cursor-pointer">
-                    Cancel
-                </button>
             </div>
         </div>
 
@@ -610,7 +606,7 @@
             return "";
         }
 
-        // --- UPDATED FOR HONOR PHONE & REDIRECT FIX ---
+        // ইনস্টল চেক ফাংশন
         function checkAppInstalledOnDevice(packageName) {
             return new Promise((resolve) => {
                 if (!packageName) {
@@ -1059,18 +1055,17 @@
             document.getElementById('install-verify-modal').classList.add('hide');
         };
 
+        // সিঙ্গেল বাটন ইনস্টল ও ভেরিফিকেশন ফ্লো
         function openInstallVerificationFlow(appItem, rewardCoins, currentJoinedCount, btnElement) {
             const modal = document.getElementById('install-verify-modal');
             const titleEl = document.getElementById('verify-modal-app-name');
-            const reopenBtn = document.getElementById('btn-reopen-store');
             const confirmBtn = document.getElementById('btn-confirm-installed');
 
             titleEl.innerText = `Install & Verify: ${appItem.name}`;
             modal.classList.remove('hide');
 
-            reopenBtn.onclick = () => {
-                openPlayStoreForInstall(appItem);
-            };
+            // প্লে স্টোরে রিডাইরেক্ট করা ও ইনস্টল ফ্ল্যাগ সেট করা
+            openPlayStoreForInstall(appItem);
 
             confirmBtn.onclick = async () => {
                 if (activeClaimingLock[appItem.id] || (claimedApps && claimedApps[appItem.id])) {
@@ -1090,10 +1085,10 @@
                 const isInstalled = await checkAppInstalledOnDevice(packageName);
 
                 confirmBtn.disabled = false;
-                confirmBtn.innerText = "Verify Installation ✔";
+                confirmBtn.innerText = "Verify & Claim Coins ✔";
 
                 if (!isInstalled) {
-                    window.showToast("❌ App NOT installed! Please install the app from Play Store first before claiming coins.");
+                    window.showToast("❌ অ্যাপটি ইনস্টল করা নেই! প্লে স্টোর থেকে ইনস্টল করার পর আবার এখানে এসে ভেরিফাই করুন।");
                     return;
                 }
 
@@ -1167,7 +1162,6 @@
                     : `<div class="w-14 h-14 bg-gradient-to-tr from-pink-600 to-rose-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-sm shrink-0">${initials}</div>`;
 
                 const isAlreadyClaimed = (claimedApps && claimedApps[appItem.id]) || activeClaimingLock[appItem.id];
-                const isPendingInstall = Boolean(pendingInstallClaims[appItem.id]);
                 let actionBtnHTML = "";
 
                 const currentJoinedCount = appItem.currentTesters || 0;
@@ -1175,8 +1169,6 @@
 
                 if (isAlreadyClaimed) {
                     actionBtnHTML = `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Claimed (+${rewardCoins})</span>`;
-                } else if (isPendingInstall) {
-                    actionBtnHTML = `<div class="flex flex-col items-end"><button id="btn-home-test-${appItem.id}" class="bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold px-4 py-1.5 rounded-full text-xs transition cursor-pointer shadow-xs">Verify Install</button><span class="text-[10px] text-amber-500 font-bold mt-1">+${rewardCoins} 🪙</span></div>`;
                 } else {
                     actionBtnHTML = `<div class="flex flex-col items-end"><button id="btn-home-test-${appItem.id}" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-extrabold px-5 py-1.5 rounded-full text-xs transition cursor-pointer">Install & Test</button><span class="text-[10px] text-amber-500 font-bold mt-1">+${rewardCoins} 🪙</span></div>`;
                 }
@@ -1220,19 +1212,6 @@
                             const currentClaimedKeys = Object.keys(claimedApps || {});
                             if (currentClaimedKeys.length >= 12) {
                                 window.showToast("❌ Limit Reached! You can test maximum 12 apps. Please wait until 14-day cycle finishes.");
-                                return;
-                            }
-
-                            if (!pendingInstallClaims[appItem.id]) {
-                                pendingInstallClaims[appItem.id] = Date.now();
-                                localStorage.setItem('pending_install_claims', JSON.stringify(pendingInstallClaims));
-
-                                testBtn.innerText = "Verify Install";
-                                testBtn.className = "bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold px-4 py-1.5 rounded-full text-xs transition cursor-pointer shadow-xs";
-
-                                window.showToast("👉 Download & install the app first, then tap 'Verify Install' to earn coins!");
-                                openPlayStoreForInstall(appItem);
-                                openInstallVerificationFlow(appItem, rewardCoins, currentJoinedCount, testBtn);
                                 return;
                             }
 
@@ -1481,7 +1460,7 @@
             }
         }
 
-        // --- UPDATED DAILY 30s CHECK ---
+        // ডেইলি ৩০ সেকেন্ড চেক ফাংশন
         async function startDaily30SecondCheck(appItem) {
             const packageName = extractPackageName(appItem.link);
             if (!packageName) {
