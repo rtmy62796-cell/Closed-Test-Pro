@@ -601,36 +601,6 @@
             return "";
         }
 
-        // রিয়েল ডিভাইস ইনটেন্ট ইনস্টল চেক with Google Play Store Fallback
-        function checkAppInstalledOnDevice(packageName) {
-            return new Promise((resolve) => {
-                if (!packageName) {
-                    resolve(false);
-                    return;
-                }
-                
-                let appOpened = false;
-                const handleVisibility = () => {
-                    if (document.hidden) {
-                        appOpened = true;
-                    }
-                };
-                
-                document.addEventListener('visibilitychange', handleVisibility);
-                
-                const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`;
-                const encodedFallback = encodeURIComponent(playStoreUrl);
-                
-                // অ্যান্ড্রয়েড ইনটেন্ট এবং ব্রাউজার ফলব্যাক ইউআরএল হিসেবে গুগল প্লে স্টোর লিংক
-                window.location.href = `intent://#Intent;package=${packageName};S.browser_fallback_url=${encodedFallback};end`;
-                
-                setTimeout(() => {
-                    document.removeEventListener('visibilitychange', handleVisibility);
-                    resolve(appOpened);
-                }, 1200);
-            });
-        }
-
         function openPlayStoreForInstall(appItem) {
             const targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
             const packageName = extractPackageName(targetLink);
@@ -1067,7 +1037,7 @@
             document.getElementById('install-verify-modal').classList.add('hide');
         };
 
-        // হোমস্ক্রিন থেকে ইনস্টল ও ভেরিফিকেশন ফ্লো
+        // হোমস্ক্রিন থেকে ইনস্টল ও ভেরিফিকেশন ফ্লো (সিওর প্লে স্টোর লিঙ্ক)
         function openInstallVerificationFlow(appItem, rewardCoins, currentJoinedCount, btnElement) {
             const modal = document.getElementById('install-verify-modal');
             const titleEl = document.getElementById('verify-modal-app-name');
@@ -1076,7 +1046,6 @@
             titleEl.innerText = `Install & Verify: ${appItem.name}`;
             modal.classList.remove('hide');
 
-            // প্লে স্টোরে রিডাইরেক্ট করা হচ্ছে
             openPlayStoreForInstall(appItem);
 
             confirmBtn.onclick = async () => {
@@ -1088,20 +1057,6 @@
                 const packageName = extractPackageName(appItem.link);
                 if (!packageName) {
                     window.showToast("❌ Invalid package link!");
-                    return;
-                }
-
-                confirmBtn.disabled = true;
-                confirmBtn.innerText = "Checking Device...";
-
-                // রিয়েল ইনটেন্ট দিয়ে চেক করা হচ্ছে অ্যাপটি ইনস্টল করা আছে কি না
-                const isInstalled = await checkAppInstalledOnDevice(packageName);
-
-                confirmBtn.disabled = false;
-                confirmBtn.innerText = "Verify & Claim Coins ✔";
-
-                if (!isInstalled) {
-                    window.showToast("❌ অ্যাপটি ইনস্টল করা নেই! প্লে স্টোর থেকে অ্যাপটি নামানোর পর আবার এসে ভেরিফাই করুন।");
                     return;
                 }
 
@@ -1150,39 +1105,23 @@
                     milestoneReachedAt: milestoneTime
                 });
                 
-                window.showToast(`Installation Verified! +${rewardCoins} Coins added ✔`);
+                window.showToast(`Verified! +${rewardCoins} Coins added ✔`);
                 renderApps(allApps);
             };
         }
 
-        // ডেইলি ৩০ সেকেন্ড টেস্ট এবং ওপেন ফ্লো
-        async function startDaily30SecondCheck(appItem) {
+        // ডেইলি ৩০ সেকেন্ড টেস্ট এবং ওপেন ফ্লো (সরাসরি প্লে স্টোর ও কাউন্টডাউন)
+        function startDaily30SecondCheck(appItem) {
             const packageName = extractPackageName(appItem.link);
             if (!packageName) {
                 window.showToast("❌ Invalid App Package Link!");
                 return;
             }
 
-            window.showToast("Checking device installation...");
+            // সরাসরি প্লে স্টোর লিংক ওপেন করবে (কোনো অনার/অন্যান্য অ্যাপ মার্কেট পপআপ করবে না)
+            openPlayStoreForInstall(appItem);
 
-            // প্রথমে চেক করা হচ্ছে অ্যাপটি ফোনে ইনস্টল করা আছে কি না
-            const isInstalled = await checkAppInstalledOnDevice(packageName);
-
-            if (!isInstalled) {
-                update(ref(db, `apps/${appItem.id}`), {
-                    uninstalls: (appItem.uninstalls || 0) + 1
-                });
-                
-                document.getElementById('missing-app-name').innerText = appItem.name;
-                document.getElementById('btn-download-missing-app').onclick = () => {
-                    openPlayStoreForInstall(appItem);
-                };
-                document.getElementById('not-installed-modal').classList.remove('hide');
-                return;
-            }
-
-            // অ্যাপ ইনস্টল থাকলে সরাসরি অ্যাপের ভেতরে নিয়ে যাবে এবং উপরে কাউন্টডাউন শুরু হবে
-            window.showToast(`Opening ${appItem.name}...`);
+            window.showToast(`Opening ${appItem.name} for 30s test...`);
 
             const modal = document.getElementById('trial-timer-modal');
             const titleEl = document.getElementById('trial-app-title');
