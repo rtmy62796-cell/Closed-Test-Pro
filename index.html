@@ -79,7 +79,7 @@
                 <div class="bg-blue-50/60 border border-blue-100 p-3.5 rounded-2xl space-y-2 text-xs text-gray-700 font-medium">
                     <div class="flex items-start gap-2">
                         <i class="fa-solid fa-check text-blue-600 mt-0.5"></i>
-                        <span><b>Install First:</b> You must install the app from Play Store before verifying & claiming coins.</span>
+                        <span><b>Install First:</b> You must install the app from Play Store to earn coins. Fake claims are automatically blocked.</span>
                     </div>
                     <div class="flex items-start gap-2">
                         <i class="fa-solid fa-check text-blue-600 mt-0.5"></i>
@@ -114,33 +114,6 @@
                 <button onclick="document.getElementById('daily-mandatory-lock-modal').classList.add('hide')" class="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-3 rounded-2xl text-xs shadow-md cursor-pointer transition">
                     Complete Daily Tasks Now
                 </button>
-            </div>
-        </div>
-
-        <!-- Install & Verify Modal (Secure Installation Check) -->
-        <div id="install-verify-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-xs z-50 flex items-center justify-center p-5 hide">
-            <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl border border-blue-100">
-                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mx-auto font-bold">
-                    <i class="fa-solid fa-cloud-arrow-down"></i>
-                </div>
-                <div class="space-y-1.5">
-                    <h3 class="font-extrabold text-gray-900 text-base" id="verify-modal-app-name">Install & Verify App</h3>
-                    <p class="text-xs text-gray-600 leading-relaxed">
-                        1. Tap the button below to go to Play Store & install the app.<br>
-                        2. After installing, return here and tap <b>Verify & Claim Coins</b>.
-                    </p>
-                </div>
-                <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11px] text-amber-800 font-semibold">
-                    ⚠️ Coins will NOT be credited if the app is not installed on your phone.
-                </div>
-                <div class="space-y-2 pt-1">
-                    <button id="btn-confirm-installed" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl text-xs shadow-md cursor-pointer transition">
-                        Verify & Claim Coins ✔
-                    </button>
-                    <button onclick="closeInstallVerifyModal()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold py-2.5 rounded-2xl text-xs cursor-pointer transition">
-                        Cancel
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -543,6 +516,9 @@
         let isUserInitialized = false;
         let hasShownDailyLockAlertThisSession = false;
 
+        // লোকাল ইনস্টল স্টেট ট্র্যাকার (অ্যাপ ডিলিট হয়েছে কি না তা রিয়েলটাইম ট্র্যাক করার জন্য)
+        let uninstalledTracker = JSON.parse(localStorage.getItem('uninstalled_apps_map')) || {};
+
         const coinBalanceEl = document.getElementById('coin-balance');
         const profileCoinsEl = document.getElementById('profile-coins');
         const dailyProgressEl = document.getElementById('daily-progress-text');
@@ -578,15 +554,16 @@
             return "";
         }
 
-        // ইনস্টল চেক করার জন্য ব্রাউজার ইনটেন্ট স্কিম (অ্যাপ থাকলে ওপেন হবে, না থাকলে প্লে স্টোরে নিয়ে যাবে)
-        function openOrInstallApp(appItem) {
-            const targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
-            const packageName = extractPackageName(targetLink);
-            if (packageName) {
+        // প্লে স্টোর বা অ্যাপ ওপেন করার ইনটেন্ট লজিক
+        function launchAppIntent(packageName, fallbackToStore = false) {
+            if (!packageName) return;
+            if (fallbackToStore) {
                 const intentUrl = `intent://#Intent;package=${packageName};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url=${encodeURIComponent(`https://play.google.com/store/apps/details?id=${packageName}`)};end;`;
                 window.location.href = intentUrl;
             } else {
-                window.open(targetLink, '_blank');
+                // ফলব্যাক ছাড়া ইনটেন্ট: অ্যাপ ইনস্টল থাকলে সরাসরি অ্যাপ ওপেন হবে, না থাকলে ব্রাউজার ফোকাস হারাবে না!
+                const directIntent = `intent://#Intent;package=${packageName};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end;`;
+                window.location.href = directIntent;
             }
         }
 
@@ -869,6 +846,7 @@
             profileCoinsEl.innerText = `${userCoins} Coins`;
         }
 
+        // রাত ১২টায় রিসেট ও প্রতিদিন অ্যাপ ডিলিট হয়েছে কি না তা অটোমেটিক চেক করার সিস্টেম
         let lastKnownDateStr = new Date().toDateString();
         setInterval(() => {
             const currentDateStr = new Date().toDateString();
@@ -878,7 +856,7 @@
                 renderDailyTestingApps(allApps);
                 showBrowserNotification(
                     "🕛 New Testing Day Started!",
-                    "Your daily testing tasks have reset. Complete all your apps (30s each) today to keep your account unlocked."
+                    "Your daily testing tasks have reset. Keep apps installed & complete 30s daily test."
                 );
             }
         }, 15000);
@@ -1012,96 +990,195 @@
             renderMyAppsAnalytics(Object.keys(data).map(k => ({ id: k, ...data[k] })));
         });
 
-        window.closeInstallVerifyModal = () => {
-            document.getElementById('install-verify-modal').classList.add('hide');
-        };
+        // =========================================================================
+        // ১. সিঙ্গেল বাটন ফ্লো: ইনস্টল ও রিয়েল টাইম চেক (ফায়ারবেসের সাথে সরাসরি কানেক্টেড)
+        // =========================================================================
+        function singleButtonInstallFlow(appItem, rewardCoins, currentJoinedCount, btnElement) {
+            const packageName = extractPackageName(appItem.link);
+            if (!packageName) {
+                window.showToast("❌ ইনভ্যালিড প্যাকেজ লিংক!");
+                return;
+            }
 
-        // ১. হোম ট্যাব থেকে প্রথমবার ইনস্টল ও ভেরিফিকেশন ফ্লো (কয়েন পাওয়ার সঠিক লজিক)
-        function openInstallVerificationFlow(appItem, rewardCoins, currentJoinedCount, btnElement) {
-            const modal = document.getElementById('install-verify-modal');
-            const titleEl = document.getElementById('verify-modal-app-name');
-            const confirmBtn = document.getElementById('btn-confirm-installed');
+            const startTime = Date.now();
+            let wentToBackground = false;
 
-            titleEl.innerText = `Install & Verify: ${appItem.name}`;
-            modal.classList.remove('hide');
+            if (btnElement) {
+                btnElement.disabled = true;
+                btnElement.innerText = "Checking...";
+            }
 
-            openOrInstallApp(appItem);
+            // প্লে স্টোর বা অ্যাপ ওপেন করা
+            launchAppIntent(packageName, true);
+            window.showToast("প্লে স্টোর ওপেন হচ্ছে... অ্যাপটি ডাউনলোড ও ওপেন করুন।");
 
-            confirmBtn.onclick = async () => {
-                if (activeClaimingLock[appItem.id] || (claimedApps && claimedApps[appItem.id])) {
-                    modal.classList.add('hide');
-                    return;
+            const onVisibilityChange = () => {
+                if (document.hidden) {
+                    wentToBackground = true;
+                } else if (wentToBackground) {
+                    document.removeEventListener('visibilitychange', onVisibilityChange);
+                    const elapsedSeconds = (Date.now() - startTime) / 1000;
+
+                    // যদি ইউজার কমপক্ষে ৮ সেকেন্ড বাইরে না থাকে (ডাউনলোড ও ওপেন করার ন্যূনতম সময়), তবে কয়েন দেবে না!
+                    if (elapsedSeconds < 8) {
+                        if (btnElement) {
+                            btnElement.disabled = false;
+                            btnElement.innerText = "Install & Test";
+                        }
+                        window.showToast("❌ ডাউনলোড সম্পন্ন হয়নি! অ্যাপ ডাউনলোড না করে ব্যাক করলে কয়েন দেওয়া হবে না।");
+                        return;
+                    }
+
+                    // ডাউনলোড ও ওপেন সময় যাচাই সফল -> ফায়ারবেসে রিয়েলটাইম কয়েন ও স্ট্যাটাস আপডেট
+                    if (activeClaimingLock[appItem.id] || (claimedApps && claimedApps[appItem.id])) return;
+                    activeClaimingLock[appItem.id] = true;
+
+                    const now = Date.now();
+                    userCoins += rewardCoins;
+                    testedAppsCount += 1;
+                    
+                    const newCount = currentJoinedCount + 1;
+                    let milestoneTime = appItem.milestoneReachedAt || 0;
+                    if (newCount >= 12 && milestoneTime === 0) {
+                        milestoneTime = now;
+                    }
+
+                    claimedApps[appItem.id] = { 
+                        timestamp: now, 
+                        lastTestedTimestamp: 0,
+                        milestoneReachedAt: milestoneTime,
+                        installedVerified: true
+                    };
+                    
+                    // ফায়ারবেস ইউজার ডাটা আপডেট
+                    update(ref(db, `users/${userId}`), { 
+                        coins: userCoins, 
+                        testedCount: testedAppsCount,
+                        claimedApps: claimedApps
+                    });
+
+                    // ফায়ারবেস অ্যাপ টেস্টার লিস্ট আপডেট
+                    set(ref(db, `apps/${appItem.id}/testersList/${userId}`), {
+                        userId: userId,
+                        name: currentUser ? currentUser.name : 'Tester',
+                        deviceId: deviceId,
+                        email: currentUser ? currentUser.email : 'N/A',
+                        timestamp: now
+                    });
+
+                    // ফায়ারবেস অ্যাপ কাউন্টার আপডেট
+                    update(ref(db, `apps/${appItem.id}`), {
+                        currentTesters: newCount,
+                        milestoneReachedAt: milestoneTime
+                    });
+
+                    // লোকাল আনইনস্টল ট্র্যাকার ক্লিয়ার করা
+                    delete uninstalledTracker[appItem.id];
+                    localStorage.setItem('uninstalled_apps_map', JSON.stringify(uninstalledTracker));
+                    
+                    window.showToast(`✅ অভিনন্দন! অ্যাপ ইনস্টল যাচাই হয়েছে এবং +${rewardCoins} কয়েন যোগ করা হয়েছে!`);
+                    renderApps(allApps);
                 }
-
-                const packageName = extractPackageName(appItem.link);
-                if (!packageName) {
-                    window.showToast("❌ Invalid package link!");
-                    return;
-                }
-
-                activeClaimingLock[appItem.id] = true;
-                modal.classList.add('hide');
-
-                if (btnElement) {
-                    btnElement.disabled = true;
-                    btnElement.innerText = "Claimed ✔";
-                    btnElement.className = "bg-emerald-100 text-emerald-700 font-extrabold px-4 py-1.5 rounded-full text-xs cursor-not-allowed";
-                }
-
-                const now = Date.now();
-                userCoins += rewardCoins;
-                testedAppsCount += 1;
-                
-                const newCount = currentJoinedCount + 1;
-                let milestoneTime = appItem.milestoneReachedAt || 0;
-                
-                if (newCount >= 12 && milestoneTime === 0) {
-                    milestoneTime = now;
-                }
-
-                claimedApps[appItem.id] = { 
-                    timestamp: now, 
-                    lastTestedTimestamp: 0,
-                    milestoneReachedAt: milestoneTime 
-                };
-                
-                update(ref(db, `users/${userId}`), { 
-                    coins: userCoins, 
-                    testedCount: testedAppsCount,
-                    claimedApps: claimedApps
-                });
-
-                set(ref(db, `apps/${appItem.id}/testersList/${userId}`), {
-                    userId: userId,
-                    name: currentUser ? currentUser.name : 'Tester',
-                    deviceId: deviceId,
-                    email: currentUser ? currentUser.email : 'N/A',
-                    timestamp: now
-                });
-
-                update(ref(db, `apps/${appItem.id}`), {
-                    currentTesters: newCount,
-                    milestoneReachedAt: milestoneTime
-                });
-                
-                window.showToast(`Verified! +${rewardCoins} Coins added ✔`);
-                renderApps(allApps);
             };
+
+            document.addEventListener('visibilitychange', onVisibilityChange);
+
+            // যদি ব্রাউজার আদৌ ব্যাকগ্রাউন্ডে না যায় (অর্থাৎ প্লে স্টোর ওপেন না হয়)
+            setTimeout(() => {
+                if (!wentToBackground) {
+                    document.removeEventListener('visibilitychange', onVisibilityChange);
+                    if (btnElement) {
+                        btnElement.disabled = false;
+                        btnElement.innerText = "Install & Test";
+                    }
+                    window.showToast("❌ প্লে স্টোর ওপেন হয়নি! দয়া করে লিংকে ক্লিক করে অ্যাপটি ডাউনলোড করুন।");
+                }
+            }, 4000);
         }
 
-        // ২. ডেইলি ৩০ সেকেন্ড টেস্ট এবং ওপেন ফ্লো (সঠিক ইনস্টল চেক ও টাইমস্ট্যাম্প কাউন্টডাউন)
-        function startDaily30SecondCheck(appItem) {
+        // =========================================================================
+        // ২. ডেইলি টেস্টিং ফ্লো: ফোনে অ্যাপ আছে কি না তা যাচাই + সরাসরি অ্যাপের ভেতর ৩০ সেকেন্ড টেস্ট
+        // =========================================================================
+        function handleDailyOpenOrInstall(appItem) {
             const packageName = extractPackageName(appItem.link);
             if (!packageName) {
                 window.showToast("❌ ইনভ্যালিড অ্যাপ প্যাকেজ লিংক!");
                 return;
             }
 
+            // যদি অ্যাপটি ফোন থেকে আনইনস্টল চিহ্নিত হয়ে থাকে, তবে আগে প্লে স্টোরে নিয়ে ইনস্টল করাবে
+            if (uninstalledTracker[appItem.id]) {
+                window.showToast("⚠️ আপনার ফোন থেকে অ্যাপটি ডিলিট হয়ে গেছে! প্লে স্টোর থেকে পুনরায় ইনস্টল করুন।");
+                const reInstallStart = Date.now();
+                let wentStore = false;
+
+                launchAppIntent(packageName, true);
+
+                const onReinstallReturn = () => {
+                    if (document.hidden) {
+                        wentStore = true;
+                    } else if (wentStore) {
+                        document.removeEventListener('visibilitychange', onReinstallReturn);
+                        if ((Date.now() - reInstallStart) >= 8000) {
+                            delete uninstalledTracker[appItem.id];
+                            localStorage.setItem('uninstalled_apps_map', JSON.stringify(uninstalledTracker));
+                            window.showToast("✅ অ্যাপ পুনরায় ইনস্টল হয়েছে! এখন Open বাটনে চাপ দিয়ে ৩০ সেকেন্ড টেস্ট করুন।");
+                            renderDailyTestingApps(allApps);
+                        } else {
+                            window.showToast("❌ ইনস্টল সম্পন্ন হয়নি! দয়া করে অ্যাপটি ডাউনলোড করুন।");
+                        }
+                    }
+                };
+                document.addEventListener('visibilitychange', onReinstallReturn);
+                return;
+            }
+
+            // অ্যাপ ফোনে ইনস্টল আছে কি না তা ডিরেক্ট ইনটেন্ট দিয়ে রিয়েল-টাইম চেক করা
+            window.showToast("অ্যাপটি ফোনে আছে কি না যাচাই করা হচ্ছে...");
+            let appOpenedSuccessfully = false;
+
+            const detectAppLaunch = () => {
+                if (document.hidden) {
+                    appOpenedSuccessfully = true;
+                }
+            };
+            document.addEventListener('visibilitychange', detectAppLaunch);
+
+            // ফলব্যাক ছাড়া সরাসরি অ্যাপ ওপেন ইনটেন্ট পাঠানো
+            launchAppIntent(packageName, false);
+
+            // ২ সেকেন্ড অপেক্ষা করে দেখবে অ্যাপের ভেতরে ঢুকেছে কি না
+            setTimeout(() => {
+                document.removeEventListener('visibilitychange', detectAppLaunch);
+
+                if (!appOpenedSuccessfully) {
+                    // অ্যাপ ফোনে নেই (ইউজার ডিলিট করে দিয়েছে)! 
+                    // সাথে সাথে সিস্টেমে আনইনস্টল মার্ক করে বাটনটিকে "Install App" করে দেবে এবং ফায়ারবেসে আপডেট করবে
+                    uninstalledTracker[appItem.id] = true;
+                    localStorage.setItem('uninstalled_apps_map', JSON.stringify(uninstalledTracker));
+
+                    update(ref(db, `users/${userId}/claimedApps/${appItem.id}`), {
+                        installedVerified: false,
+                        uninstalledAt: Date.now()
+                    });
+
+                    window.showToast("❌ আপনার ফোনে অ্যাপটি পাওয়া যায়নি (ডিলিট করা হয়েছে)! বাটনটি Install-এ পরিবর্তন করা হয়েছে।");
+                    renderDailyTestingApps(allApps);
+                    return;
+                }
+
+                // অ্যাপ ফোনে আছে এবং ইউজার অ্যাপের ভেতরে চলে গেছে -> এখন অ্যাপের ভেতর থেকে ৩০ সেকেন্ড কাউন্টডাউন শুরু!
+                startRealInAppTimer(appItem);
+
+            }, 2000);
+        }
+
+        function startRealInAppTimer(appItem) {
             const modal = document.getElementById('trial-timer-modal');
             const titleEl = document.getElementById('trial-app-title');
             const timerEl = document.getElementById('countdown-timer');
             
-            titleEl.innerText = `Testing: ${appItem.name}`;
+            titleEl.innerText = `Testing Inside: ${appItem.name}`;
             modal.classList.remove('hide');
 
             let timeLeft = 30;
@@ -1111,42 +1188,23 @@
 
             const startTime = Date.now();
             const targetDuration = 30000; // ৩০ সেকেন্ড
-
-            // অ্যাপ ওপেন করার চেষ্টা করবে, ফোনে না থাকলে প্লে স্টোরে পাঠাবে
-            openOrInstallApp(appItem);
-
-            window.showToast(`${appItem.name} ওপেন করা হচ্ছে... ৩০ সেকেন্ড অ্যাপের ভেতরে থাকুন।`);
-
             let isFinished = false;
 
-            const handleVisibilityChange = () => {
+            // ইউজার ৩০ সেকেন্ড পূর্ণ হওয়ার আগে অ্যাপ থেকে বের হয়ে ব্রাউজারে চলে আসলে টাস্ক বাতিল!
+            const handleEarlyExit = () => {
                 if (!document.hidden && !isFinished) {
                     const elapsed = Date.now() - startTime;
                     if (elapsed < targetDuration) {
                         isFinished = true;
                         clearInterval(activeTimerInterval);
-                        document.removeEventListener('visibilitychange', handleVisibilityChange);
+                        document.removeEventListener('visibilitychange', handleEarlyExit);
                         modal.classList.add('hide');
-                        window.showToast("❌ টাস্ক বাতিল! ৩০ সেকেন্ড শেষ হওয়ার আগে অ্যাপ থেকে বের হয়ে গেছেন।");
-                    } else {
-                        isFinished = true;
-                        clearInterval(activeTimerInterval);
-                        document.removeEventListener('visibilitychange', handleVisibilityChange);
-                        modal.classList.add('hide');
-
-                        const now = Date.now();
-                        claimedApps[appItem.id].lastTestedTimestamp = now;
-                        update(ref(db, `users/${userId}/claimedApps/${appItem.id}`), { 
-                            lastTestedTimestamp: now 
-                        });
-                        
-                        window.showToast(`✅ অভিনন্দন! ${appItem.name} সফলভাবে ৩০ সেকেন্ড টেস্ট করা হয়েছে!`);
-                        renderDailyTestingApps(allApps);
+                        window.showToast(`❌ টাস্ক বাতিল! আপনি মাত্র ${Math.floor(elapsed/1000)} সেকেন্ড অ্যাপের ভেতরে ছিলেন। ৩০ সেকেন্ড থাকতে হবে।`);
                     }
                 }
             };
 
-            document.addEventListener('visibilitychange', handleVisibilityChange);
+            document.addEventListener('visibilitychange', handleEarlyExit);
 
             activeTimerInterval = setInterval(() => {
                 const elapsed = Date.now() - startTime;
@@ -1156,16 +1214,20 @@
                 if (elapsed >= targetDuration && !isFinished) {
                     isFinished = true;
                     clearInterval(activeTimerInterval);
-                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    document.removeEventListener('visibilitychange', handleEarlyExit);
                     modal.classList.add('hide');
 
                     const now = Date.now();
                     claimedApps[appItem.id].lastTestedTimestamp = now;
+                    claimedApps[appItem.id].installedVerified = true;
+
+                    // ফায়ারবেসে আজকের ডেইলি টেস্ট সফল হওয়ার রেকর্ড সেভ করা
                     update(ref(db, `users/${userId}/claimedApps/${appItem.id}`), { 
-                        lastTestedTimestamp: now 
+                        lastTestedTimestamp: now,
+                        installedVerified: true
                     });
                     
-                    window.showToast(`✅ অভিনন্দন! ${appItem.name} সফলভাবে ৩০ সেকেন্ড টেস্ট করা হয়েছে!`);
+                    window.showToast(`✅ অভিনন্দন! ${appItem.name} অ্যাপের ভেতরে ৩০ সেকেন্ড টেস্ট সফলভাবে সম্পন্ন হয়েছে!`);
                     renderDailyTestingApps(allApps);
                 }
             }, 500);
@@ -1194,9 +1256,9 @@
                 const rewardCoins = currentJoinedCount >= 12 ? 3 : 5;
 
                 if (isAlreadyClaimed) {
-                    actionBtnHTML = `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Claimed (+${rewardCoins})</span>`;
+                    actionBtnHTML = `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Installed (+${rewardCoins})</span>`;
                 } else {
-                    actionBtnHTML = `<div class="flex flex-col items-end"><button id="btn-home-test-${appItem.id}" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-extrabold px-5 py-1.5 rounded-full text-xs transition cursor-pointer">Install & Test</button><span class="text-[10px] text-amber-500 font-bold mt-1">+${rewardCoins} 🪙</span></div>`;
+                    actionBtnHTML = `<div class="flex flex-col items-end"><button id="btn-home-test-${appItem.id}" class="bg-blue-600 text-white hover:bg-blue-700 font-extrabold px-5 py-1.5 rounded-full text-xs transition cursor-pointer shadow-xs">Install & Test</button><span class="text-[10px] text-amber-500 font-bold mt-1">+${rewardCoins} 🪙</span></div>`;
                 }
 
                 const categoryName = appItem.category || 'App';
@@ -1241,7 +1303,7 @@
                                 return;
                             }
 
-                            openInstallVerificationFlow(appItem, rewardCoins, currentJoinedCount, testBtn);
+                            singleButtonInstallFlow(appItem, rewardCoins, currentJoinedCount, testBtn);
                         });
                     }
                 }
@@ -1379,7 +1441,7 @@
             const myClaimedApps = appsArray.filter(app => claimedApps && claimedApps[app.id]);
 
             if (myClaimedApps.length === 0) {
-                dailyTestingListEl.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">No claimed testing apps. Explore Apps tab to claim apps & earn coins!</p>';
+                dailyTestingListEl.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">No claimed testing apps. Explore Apps tab to install apps & earn coins!</p>';
                 dailyProgressEl.innerText = `0 / 0 apps`;
                 document.getElementById('progress-bar-fill').style.width = `100%`;
                 isDailyTestingCompleted = true;
@@ -1403,8 +1465,9 @@
                 const lastTestedTime = claimedApps[appItem.id].lastTestedTimestamp || 0;
                 const lastTestedDateStr = lastTestedTime ? new Date(lastTestedTime).toDateString() : '';
                 const isTestedToday = (lastTestedDateStr === todayDateStr);
+                const isUninstalled = uninstalledTracker[appItem.id] === true || claimedApps[appItem.id].installedVerified === false;
 
-                if (isTestedToday) {
+                if (isTestedToday && !isUninstalled) {
                     completedTodayCount++;
                 } else {
                     currentPendingDailyApps.push(appItem);
@@ -1419,7 +1482,9 @@
                     : `<div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white text-base font-bold shrink-0">${initials}</div>`;
 
                 let statusBadgeText = "";
-                if (!isCycleStarted) {
+                if (isUninstalled) {
+                    statusBadgeText = `<p class="text-[10px] text-red-600 font-bold mt-0.5">⚠️ App Missing / Uninstalled! Re-install required</p>`;
+                } else if (!isCycleStarted) {
                     statusBadgeText = `<p class="text-[10px] text-blue-600 font-bold mt-0.5">👥 ${testersCount}/12 Testers • Daily Check Required</p>`;
                 } else {
                     const milestoneTime = appItem.milestoneReachedAt || claimedApps[appItem.id].milestoneReachedAt || 0;
@@ -1431,11 +1496,18 @@
                     statusBadgeText = `<p class="text-[10px] text-amber-600 font-bold mt-0.5">⏱ 14-Day Cycle (${daysLeft} days left) | ${testersCount} Testers</p>`;
                 }
 
-                const btnHTML = isTestedToday 
-                    ? `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check text-base"></i> Tested Today</span>` 
-                    : `<button id="btn-daily-${appItem.id}" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl cursor-pointer transition flex items-center gap-1 shadow-xs">
-                        <i class="fa-solid fa-play text-[10px]"></i> Open & Test (30s)
+                let btnHTML = "";
+                if (isUninstalled) {
+                    btnHTML = `<button id="btn-daily-${appItem.id}" class="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl cursor-pointer transition flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-download text-[10px]"></i> Install App
                        </button>`;
+                } else if (isTestedToday) {
+                    btnHTML = `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check text-base"></i> Tested Today</span>`;
+                } else {
+                    btnHTML = `<button id="btn-daily-${appItem.id}" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl cursor-pointer transition flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-play text-[10px]"></i> Open
+                       </button>`;
+                }
 
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
@@ -1449,9 +1521,9 @@
                 `;
                 dailyTestingListEl.appendChild(card);
 
-                if (!isTestedToday) {
+                if (isUninstalled || !isTestedToday) {
                     card.querySelector(`#btn-daily-${appItem.id}`).addEventListener('click', () => {
-                        startDaily30SecondCheck(appItem);
+                        handleDailyOpenOrInstall(appItem);
                     });
                 }
             });
