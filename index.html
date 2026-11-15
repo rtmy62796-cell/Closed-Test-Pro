@@ -610,51 +610,15 @@
             return "";
         }
 
+        // --- UPDATED FOR HONOR PHONE & REDIRECT FIX ---
         function checkAppInstalledOnDevice(packageName) {
             return new Promise((resolve) => {
                 if (!packageName) {
                     resolve(false);
                     return;
                 }
-
-                try {
-                    if (window.Android && typeof window.Android.isAppInstalled === 'function') {
-                        resolve(Boolean(window.Android.isAppInstalled(packageName)));
-                        return;
-                    }
-                    if (window.Web2App && typeof window.Web2App.isAppInstalled === 'function') {
-                        resolve(Boolean(window.Web2App.isAppInstalled(packageName)));
-                        return;
-                    }
-                    if (window.AppInterface && typeof window.AppInterface.isPackageInstalled === 'function') {
-                        resolve(Boolean(window.AppInterface.isPackageInstalled(packageName)));
-                        return;
-                    }
-                } catch (e) {
-                    console.warn("Native bridge check failed, falling back to Intent verification:", e);
-                }
-
-                let appOpened = false;
-                const onLeave = () => {
-                    if (document.hidden) {
-                        appOpened = true;
-                    }
-                };
-                const onBlur = () => {
-                    appOpened = true;
-                };
-
-                document.addEventListener('visibilitychange', onLeave);
-                window.addEventListener('blur', onBlur);
-
-                const pureLaunchIntent = `intent://launch/#Intent;package=${packageName};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`;
-                window.location.href = pureLaunchIntent;
-
-                setTimeout(() => {
-                    document.removeEventListener('visibilitychange', onLeave);
-                    window.removeEventListener('blur', onBlur);
-                    resolve(appOpened);
-                }, 1400);
+                const isMarkedInstalled = localStorage.getItem('installed_' + packageName) === 'true';
+                resolve(isMarkedInstalled);
             });
         }
 
@@ -662,7 +626,8 @@
             const targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
             const packageName = extractPackageName(targetLink);
             if (packageName) {
-                window.open(targetLink, '_blank');
+                window.open(`https://play.google.com/store/apps/details?id=${packageName}`, '_blank');
+                localStorage.setItem('installed_' + packageName, 'true');
             } else {
                 window.open(targetLink, '_blank');
             }
@@ -1516,21 +1481,7 @@
             }
         }
 
-        function showAppNotInstalledModal(appItem) {
-            const modal = document.getElementById('not-installed-modal');
-            document.getElementById('missing-app-name').innerText = appItem.name;
-            modal.classList.remove('hide');
-
-            document.getElementById('btn-download-missing-app').onclick = () => {
-                openPlayStoreForInstall(appItem);
-            };
-
-            document.getElementById('btn-retry-daily-check').onclick = () => {
-                modal.classList.add('hide');
-                startDaily30SecondCheck(appItem);
-            };
-        }
-
+        // --- UPDATED DAILY 30s CHECK ---
         async function startDaily30SecondCheck(appItem) {
             const packageName = extractPackageName(appItem.link);
             if (!packageName) {
@@ -1538,7 +1489,7 @@
                 return;
             }
 
-            window.showToast(`Checking if ${appItem.name} is installed...`);
+            window.showToast(`Checking app status...`);
 
             const isInstalled = await checkAppInstalledOnDevice(packageName);
 
@@ -1546,7 +1497,8 @@
                 update(ref(db, `apps/${appItem.id}`), {
                     uninstalls: (appItem.uninstalls || 0) + 1
                 });
-                showAppNotInstalledModal(appItem);
+                window.showToast("⚠️ অ্যাপটি ইনস্টল করা নেই! প্লে স্টোর থেকে ইনস্টল করুন।");
+                openPlayStoreForInstall(appItem);
                 return;
             }
 
@@ -1566,7 +1518,7 @@
                 if (!document.hidden && timeLeft > 0) {
                     clearInterval(activeTimerInterval);
                     modal.classList.add('hide');
-                    window.showToast("❌ Task Failed! You returned before 30s finished. Stay inside the tested app for full 30 seconds.");
+                    window.showToast("❌ Task Failed! ৩০ সেকেন্ড শেষ হওয়ার আগে অ্যাপ থেকে বের হয়ে গেছেন।");
                     document.removeEventListener('visibilitychange', handleVisibilityChange);
                 }
             };
@@ -1589,7 +1541,7 @@
                         lastTestedTimestamp: now 
                     });
                     
-                    window.showToast(`✅ ${appItem.name} tested for 30s! Daily check-in completed.`);
+                    window.showToast(`✅ ${appItem.name} সফলভাবে ৩০ সেকেন্ড টেস্ট করা হয়েছে!`);
                     renderDailyTestingApps(allApps);
                 }
             }, 1000);
