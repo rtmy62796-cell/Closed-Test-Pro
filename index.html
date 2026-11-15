@@ -442,17 +442,20 @@
 
         </div>
 
-        <!-- 30-Second Countdown Modal -->
-        <div id="trial-timer-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-6 hide">
+        <!-- 30-Second Countdown Modal (Smooth & Robust) -->
+        <div id="trial-timer-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-xs z-50 flex items-center justify-center p-6 hide">
             <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center space-y-4 shadow-2xl">
                 <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mx-auto font-bold animate-pulse">
                     <i class="fa-solid fa-hourglass-half"></i>
                 </div>
                 <div class="space-y-1">
                     <h3 class="font-extrabold text-gray-900 text-base" id="trial-app-title">Testing App</h3>
-                    <p class="text-xs text-amber-600 font-bold">⚠️ Stay inside the installed app until the 30s timer finishes! Do not return early.</p>
+                    <p class="text-xs text-gray-500">Please keep this open or wait for the timer to complete your daily check-in.</p>
                 </div>
-                <div class="text-3xl font-extrabold text-blue-600 font-mono" id="countdown-timer">30s</div>
+                <div class="text-4xl font-extrabold text-blue-600 font-mono py-2" id="countdown-timer">30s</div>
+                <button onclick="cancelTrialTimer()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-2xl text-xs cursor-pointer">
+                    Cancel
+                </button>
             </div>
         </div>
 
@@ -1090,18 +1093,16 @@
             };
         }
 
-        // ডেইলি ৩০ সেকেন্ড টেস্ট এবং ওপেন ফ্লো (নিরাপদ ম্যানুয়াল মোড)
+        // ডেইলি ৩০ সেকেন্ড টেস্ট এবং ওপেন ফ্লো (রবাস্ট ও রিলাক্সেড টাইমার - কোনো ফলস ফেইলিউর নেই)
+        window.cancelTrialTimer = () => {
+            if (activeTimerInterval) clearInterval(activeTimerInterval);
+            document.getElementById('trial-timer-modal').classList.add('hide');
+            window.showToast("Test cancelled.");
+        };
+
         function startDaily30SecondCheck(appItem) {
-            const packageName = extractPackageName(appItem.link);
-            if (!packageName) {
-                window.showToast("❌ Invalid App Package Link!");
-                return;
-            }
-
-            // সরাসরি গুগল প্লে স্টোর লিংক ওপেন করবে
+            // প্রথমে প্লে স্টোরের লিংক ওপেন হবে
             openPlayStoreForInstall(appItem);
-
-            window.showToast(`Opening ${appItem.name} for 30s test...`);
 
             const modal = document.getElementById('trial-timer-modal');
             const titleEl = document.getElementById('trial-app-title');
@@ -1115,24 +1116,12 @@
 
             if(activeTimerInterval) clearInterval(activeTimerInterval);
 
-            const handleVisibilityChange = () => {
-                if (!document.hidden && timeLeft > 0) {
-                    clearInterval(activeTimerInterval);
-                    modal.classList.add('hide');
-                    window.showToast("❌ Task Failed! ৩০ সেকেন্ড শেষ হওয়ার আগে অ্যাপ থেকে বের হয়ে গেছেন।");
-                    document.removeEventListener('visibilitychange', handleVisibilityChange);
-                }
-            };
-
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-
             activeTimerInterval = setInterval(() => {
                 timeLeft--;
                 timerEl.innerText = `${timeLeft}s`;
 
                 if (timeLeft <= 0) {
                     clearInterval(activeTimerInterval);
-                    document.removeEventListener('visibilitychange', handleVisibilityChange);
                     modal.classList.add('hide');
 
                     const now = Date.now();
