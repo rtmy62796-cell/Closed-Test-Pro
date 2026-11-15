@@ -83,7 +83,7 @@
                     </div>
                     <div class="flex items-start gap-2">
                         <i class="fa-solid fa-check text-blue-600 mt-0.5"></i>
-                        <span><b>Daily Check-in:</b> Submit screenshots from <b>different pages/sections</b> of the app every day after 12:00 PM. Do not uninstall during the 14-day cycle!</span>
+                        <span><b>Daily Check-in:</b> Submit screenshots from <b>different pages/sections</b> of the app every day after 12:00 PM. Do not uninstall during the testing cycle!</span>
                     </div>
                 </div>
 
@@ -142,20 +142,24 @@
 
         <!-- Daily Screenshot Upload Modal -->
         <div id="screenshot-upload-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-xs z-50 flex items-center justify-center p-5 hide">
-            <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-left space-y-4 shadow-2xl border-2 border-amber-500">
-                <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mx-auto font-bold shadow-xs">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-left space-y-3.5 shadow-2xl border-2 border-amber-500">
+                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-xl mx-auto font-bold shadow-xs">
                     <i class="fa-solid fa-camera"></i>
                 </div>
                 <div class="text-center space-y-1">
-                    <h3 class="font-extrabold text-gray-900 text-base" id="screenshot-modal-title">Upload Daily Proof</h3>
-                    <p class="text-[11px] text-gray-500">Attach screenshot from a different app page/section after 12:00 PM.</p>
+                    <h3 class="font-extrabold text-gray-900 text-sm" id="screenshot-modal-title">Upload Daily Proof</h3>
+                    <p class="text-[10px] text-gray-500">Attach screenshot from a different app page/section after 12:00 PM.</p>
                 </div>
                 
-                <div class="bg-red-50 border-2 border-red-500 p-3.5 rounded-2xl space-y-2 text-xs text-red-900">
-                    <div class="font-extrabold flex items-center gap-1.5 text-red-600 text-sm">
+                <button type="button" id="btn-modal-install-open" class="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 font-extrabold text-xs py-2.5 rounded-2xl border border-blue-200 flex items-center justify-center gap-2 transition cursor-pointer shadow-xs">
+                    <i class="fa-brands fa-google-play text-sm"></i> Install / Open App to Take Screenshot
+                </button>
+
+                <div class="bg-red-50 border-2 border-red-500 p-3 rounded-2xl space-y-1.5 text-xs text-red-900">
+                    <div class="font-extrabold flex items-center gap-1.5 text-red-600 text-[11px]">
                         <i class="fa-solid fa-file-circle-exclamation"></i> STRICT RULE: DIFFERENT PAGES EACH DAY!
                     </div>
-                    <p class="text-[11px] font-bold leading-relaxed">
+                    <p class="text-[10px] font-bold leading-relaxed">
                         প্রতিদিন অ্যাপের <b>ভিন্ন ভিন্ন পেজ বা ফিচার</b> থেকে স্ক্রিনশট দিতে হবে। ফেক বা পুরোনো স্ক্রিনশট দিলে অ্যাকাউন্ট চিরতরে <b>BANNED</b> করা হবে!
                     </p>
                 </div>
@@ -163,31 +167,36 @@
                 <div>
                     <label class="font-bold text-xs text-gray-700 block mb-1">Select Screenshot from Gallery</label>
                     <input type="file" id="input-daily-screenshot" accept="image/*" class="hidden" onchange="processLocalScreenshot(event)">
-                    <button type="button" onclick="document.getElementById('input-daily-screenshot').click()" class="w-full bg-gray-50 hover:bg-gray-100 font-bold text-gray-800 text-xs py-3.5 rounded-2xl border border-dashed border-gray-400 flex items-center justify-center gap-2 transition cursor-pointer">
+                    <button type="button" onclick="document.getElementById('input-daily-screenshot').click()" class="w-full bg-gray-50 hover:bg-gray-100 font-bold text-gray-800 text-xs py-3 rounded-2xl border border-dashed border-gray-400 flex items-center justify-center gap-2 transition cursor-pointer">
                         <i class="fa-solid fa-image text-blue-600 text-base"></i> <span id="screenshot-btn-text">Browse Screenshot</span>
                     </button>
-                    <div id="screenshot-preview-container" class="mt-3 hidden flex flex-col items-center">
-                        <img id="screenshot-preview" class="w-32 h-60 object-contain rounded-2xl border-2 border-blue-500 shadow-md bg-black/5">
-                        <span id="screenshot-file-name" class="text-[10px] text-gray-400 mt-1 font-mono">IMG_001.jpg</span>
+                    <div id="screenshot-preview-container" class="mt-2.5 hidden flex flex-col items-center">
+                        <img id="screenshot-preview" class="w-28 h-52 object-contain rounded-xl border-2 border-blue-500 shadow-md bg-black/5">
+                        <span id="screenshot-file-name" class="text-[9px] text-gray-400 mt-1 font-mono">IMG_001.jpg</span>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 pt-2">
-                    <button onclick="closeScreenshotModal()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-2xl text-xs cursor-pointer transition">
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="closeScreenshotModal()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-2xl text-xs cursor-pointer transition">
                         Cancel
                     </button>
-                    <button id="btn-submit-screenshot" disabled onclick="submitDailyScreenshotProof()" class="w-full bg-gray-300 text-gray-500 font-extrabold py-3 rounded-2xl text-xs shadow-xs transition cursor-not-allowed">
+                    <button id="btn-submit-screenshot" disabled onclick="submitDailyScreenshotProof()" class="w-full bg-gray-300 text-gray-500 font-extrabold py-2.5 rounded-2xl text-xs shadow-xs transition cursor-not-allowed">
                         Submit Proof ✔
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Image Viewer Modal (To inspect tester screenshots) -->
-        <div id="image-viewer-modal" class="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4 hide">
+        <!-- Image Viewer Modal (With Verify / Mark Checked Button) -->
+        <div id="image-viewer-modal" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-4 hide">
             <button onclick="document.getElementById('image-viewer-modal').classList.add('hide')" class="absolute top-5 right-5 text-white text-2xl font-bold bg-white/20 px-3 py-1 rounded-full cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
-            <img id="modal-full-image" class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border-2 border-white/20">
-            <p id="modal-image-caption" class="text-white text-xs mt-3 font-mono"></p>
+            <img id="modal-full-image" class="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl border-2 border-white/20">
+            <p id="modal-image-caption" class="text-white text-xs mt-3 font-mono text-center"></p>
+            <div class="mt-4 flex gap-3 w-full max-w-xs">
+                <button id="btn-mark-verified" onclick="markProofAsVerified()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-2xl text-xs shadow-lg transition cursor-pointer flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i> Mark as Verified ✔
+                </button>
+            </div>
         </div>
 
         <!-- Helpline Modal -->
@@ -361,7 +370,7 @@
 
                     <!-- Tester Count Options -->
                     <div>
-                        <h4 class="font-extrabold text-gray-900 text-xs mb-2">Select Testers Requirement</h4>
+                        <h4 class="font-extrabold text-gray-900 text-xs mb-2">Select Testers Requirement (Min 12)</h4>
                         <div class="grid grid-cols-2 gap-2">
                             <label class="border-2 border-blue-500 bg-white p-3 rounded-2xl cursor-pointer flex flex-col justify-between shadow-xs">
                                 <div class="flex justify-between items-center">
@@ -416,12 +425,26 @@
                 </div>
             </div>
 
-            <!-- TAB 4: MY APPS & ANALYTICS DASHBOARD -->
+            <!-- TAB 4: MY APPS & GLOBAL INBOX DASHBOARD -->
             <div id="tab-myapps" class="space-y-4 hide">
+                <!-- Global Daily Proofs Inbox Box -->
+                <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-4 rounded-3xl shadow-md space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-extrabold text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-inbox"></i> Global Daily Proofs Inbox
+                        </h3>
+                        <span id="global-proofs-count" class="bg-white text-orange-600 text-xs font-extrabold px-2.5 py-0.5 rounded-full">0 Pending</span>
+                    </div>
+                    <p class="text-[11px] text-white/90">All incoming daily screenshots from testers across all your apps appear here. Once verified, they clear out.</p>
+                    <div id="global-inbox-list" class="space-y-2 max-h-56 overflow-y-auto no-scrollbar pt-1">
+                        <p class="text-xs text-white/80 italic text-center py-2">No pending proofs right now.</p>
+                    </div>
+                </div>
+
                 <div class="flex justify-between items-center bg-white p-4 rounded-3xl border border-gray-100 shadow-xs">
                     <div>
-                        <h3 class="font-extrabold text-gray-900 text-sm">My Uploaded Apps & Proofs</h3>
-                        <p class="text-xs text-gray-500">Testers & daily screenshot files</p>
+                        <h3 class="font-extrabold text-gray-900 text-sm">My Uploaded Apps & Testers</h3>
+                        <p class="text-xs text-gray-500">16-day countdown & active tester slots</p>
                     </div>
                     <span class="bg-blue-50 text-blue-600 text-xs font-extrabold px-3 py-1 rounded-full" id="my-apps-count-badge">0 Apps</span>
                 </div>
@@ -488,7 +511,7 @@
 
         </div>
 
-        <!-- Bottom Upload Bar (Fixed above bottom navigation) -->
+        <!-- Bottom Upload Bar -->
         <div id="bottom-upload-bar" class="fixed bottom-14 left-0 right-0 max-w-[420px] mx-auto bg-white border-t border-gray-100 p-3.5 z-30 hide shadow-lg">
             <button id="btn-submit-app" class="w-full bg-[#2563eb] text-white font-extrabold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-1.5 shadow-md cursor-pointer">
                 Upload App <span id="btn-icon" class="text-amber-300 ml-1">🪙</span> <span id="btn-cost">60</span>
@@ -555,7 +578,7 @@
         const db = getDatabase(app);
 
         let currentUser = JSON.parse(localStorage.getItem('tester_logged_user')) || null;
-        let deviceId = localStorage.getItem('device_id_token') || `DEV-${Math.floor(100000 + Math.random() * 900000)}`;
+        let deviceId = localStorage.getItem('device_id_token`') || `DEV-${Math.floor(100000 + Math.random() * 900000)}`;
         localStorage.setItem('device_id_token', deviceId);
 
         let userId = currentUser ? currentUser.id : `user_${deviceId.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
@@ -575,6 +598,7 @@
         let activeClaimingLock = {};
         let isUserInitialized = false;
         let hasShownDailyLockAlertThisSession = false;
+        let activeViewingProof = null;
 
         const coinBalanceEl = document.getElementById('coin-balance');
         const profileCoinsEl = document.getElementById('profile-coins');
@@ -620,6 +644,7 @@
                 window.open(targetLink, '_blank');
             }
         }
+        window.openPlayStoreForInstall = openPlayStoreForInstall;
 
         const savedLang = localStorage.getItem('app_language') || 'en';
         document.getElementById('language-selector').value = savedLang;
@@ -771,13 +796,13 @@
                     claimedApps = data.claimedApps || {};
 
                     const now = Date.now();
-                    const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+                    const sixteenDaysMs = 16 * 24 * 60 * 60 * 1000;
                     let hasExpired = false;
 
                     Object.keys(claimedApps).forEach(appId => {
                         const appData = claimedApps[appId];
                         const milestoneTime = appData.milestoneReachedAt || 0;
-                        if (milestoneTime > 0 && (now - milestoneTime) >= fourteenDaysMs) {
+                        if (milestoneTime > 0 && (now - milestoneTime) >= sixteenDaysMs) {
                             delete claimedApps[appId];
                             hasExpired = true;
                         }
@@ -1021,15 +1046,37 @@
 
             allApps = [];
             const now = Date.now();
-            const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+            const sixteenDaysMs = 16 * 24 * 60 * 60 * 1000;
 
             Object.keys(data).forEach(key => {
                 const appObj = { id: key, ...data[key] };
                 
-                if(appObj.milestoneReachedAt && (now - appObj.milestoneReachedAt > fourteenDaysMs)) {
+                // Auto-expire after 16 days from milestone reached (12+ testers)
+                if(appObj.milestoneReachedAt && (now - appObj.milestoneReachedAt > sixteenDaysMs)) {
                     remove(ref(db, `apps/${key}`));
                     return;
                 }
+
+                // Inactive tester auto-removal (if missing proof for 3+ days)
+                if (appObj.testersList) {
+                    let testersUpdated = false;
+                    Object.entries(appObj.testersList).forEach(([tKey, tester]) => {
+                        const lastActive = tester.lastActive || tester.timestamp || now;
+                        const daysInactive = (now - lastActive) / (1000 * 60 * 60 * 24);
+                        if (daysInactive > 3) {
+                            remove(ref(db, `apps/${key}/testersList/${tKey}`));
+                            testersUpdated = true;
+                        }
+                    });
+                    if (testersUpdated) {
+                        // Recalculate currentTesters count
+                        get(ref(db, `apps/${key}/testersList`)).then((tSnap) => {
+                            const count = tSnap.exists() ? Object.keys(tSnap.val()).length : 0;
+                            update(ref(db, `apps/${key}`), { currentTesters: count });
+                        });
+                    }
+                }
+
                 if(appObj.status === 'Active') {
                     allApps.push(appObj);
                 }
@@ -1088,6 +1135,7 @@
                 const newCount = currentJoinedCount + 1;
                 let milestoneTime = appItem.milestoneReachedAt || 0;
                 
+                // Milestone triggers when testers reach 12 or more
                 if (newCount >= 12 && milestoneTime === 0) {
                     milestoneTime = now;
                 }
@@ -1109,7 +1157,8 @@
                     name: currentUser ? currentUser.name : 'Tester',
                     deviceId: deviceId,
                     email: currentUser ? currentUser.email : 'N/A',
-                    timestamp: now
+                    timestamp: now,
+                    lastActive: now
                 });
 
                 update(ref(db, `apps/${appItem.id}`), {
@@ -1122,7 +1171,6 @@
             };
         }
 
-        // --- DAILY SCREENSHOT SUBMISSION LOGIC ---
         window.openDailyScreenshotModal = (appId, appName) => {
             const now = new Date();
             if (now.getHours() < 12) {
@@ -1130,14 +1178,26 @@
                 return;
             }
 
-            selectedAppForScreenshot = { id: appId, name: appName };
+            const targetApp = allApps.find(a => a.id === appId);
+            selectedAppForScreenshot = { id: appId, name: appName, link: targetApp ? targetApp.link : '' };
+
             document.getElementById('screenshot-modal-title').innerText = `Daily Check-In: ${appName}`;
+            
+            const modalInstallBtn = document.getElementById('btn-modal-install-open');
+            modalInstallBtn.onclick = () => {
+                if (selectedAppForScreenshot && selectedAppForScreenshot.link) {
+                    openPlayStoreForInstall(selectedAppForScreenshot);
+                } else {
+                    window.showToast("App link not available!");
+                }
+            };
+
             document.getElementById('input-daily-screenshot').value = '';
             localScreenshotBase64 = "";
             document.getElementById('screenshot-preview-container').classList.add('hidden');
             document.getElementById('screenshot-btn-text').innerText = "Browse Screenshot";
             document.getElementById('btn-submit-screenshot').disabled = true;
-            document.getElementById('btn-submit-screenshot').className = "w-full bg-gray-300 text-gray-500 font-extrabold py-3 rounded-2xl text-xs shadow-xs transition cursor-not-allowed";
+            document.getElementById('btn-submit-screenshot').className = "w-full bg-gray-300 text-gray-500 font-extrabold py-2.5 rounded-2xl text-xs shadow-xs transition cursor-not-allowed";
             
             document.getElementById('screenshot-upload-modal').classList.remove('hide');
         };
@@ -1157,7 +1217,7 @@
                     
                     const submitBtn = document.getElementById('btn-submit-screenshot');
                     submitBtn.disabled = false;
-                    submitBtn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-2xl text-xs shadow-md transition cursor-pointer";
+                    submitBtn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 rounded-2xl text-xs shadow-md transition cursor-pointer";
                 };
                 reader.readAsDataURL(file);
             }
@@ -1167,22 +1227,29 @@
             if (!localScreenshotBase64 || !selectedAppForScreenshot) return;
 
             const dateStr = new Date().toDateString();
+            const now = Date.now();
             
-            // Update user claim record
             claimedApps[selectedAppForScreenshot.id].lastProofDate = dateStr;
             update(ref(db, `users/${userId}/claimedApps/${selectedAppForScreenshot.id}`), {
                 lastProofDate: dateStr,
                 lastProofStatus: 'Submitted'
             });
 
-            // Push screenshot directly into app owner's proofs folder
+            // Update tester last active timestamp
+            update(ref(db, `apps/${selectedAppForScreenshot.id}/testersList/${userId}`), {
+                lastActive: now
+            });
+
+            // Push into app's proofs and also available for global inbox
             push(ref(db, `apps/${selectedAppForScreenshot.id}/proofs`), {
                 userId: userId,
                 userName: currentUser ? currentUser.name : 'Tester',
                 deviceId: deviceId,
                 screenshotUrl: localScreenshotBase64,
                 dateSubmitted: dateStr,
-                timestamp: Date.now()
+                appName: selectedAppForScreenshot.name,
+                status: 'Pending',
+                timestamp: now
             }).then(() => {
                 window.showToast("✅ Proof submitted successfully!");
                 closeScreenshotModal();
@@ -1190,10 +1257,24 @@
             });
         };
 
-        window.viewProofImage = (imgUrl, caption) => {
+        window.viewProofImage = (imgUrl, caption, appId, proofKey) => {
+            activeViewingProof = { appId, proofKey };
             document.getElementById('modal-full-image').src = imgUrl;
             document.getElementById('modal-image-caption').innerText = caption;
             document.getElementById('image-viewer-modal').classList.remove('hide');
+        };
+
+        window.markProofAsVerified = () => {
+            if (!activeViewingProof) return;
+            const { appId, proofKey } = activeViewingProof;
+
+            update(ref(db, `apps/${appId}/proofs/${proofKey}`), {
+                status: 'Verified'
+            }).then(() => {
+                window.showToast("✔ Proof marked as Verified & cleared!");
+                document.getElementById('image-viewer-modal').classList.add('hide');
+                activeViewingProof = null;
+            });
         };
 
         function renderApps(appsArray) {
@@ -1262,7 +1343,7 @@
 
                             const currentClaimedKeys = Object.keys(claimedApps || {});
                             if (currentClaimedKeys.length >= 12) {
-                                window.showToast("❌ Limit Reached! You can test maximum 12 apps. Please wait until 14-day cycle finishes.");
+                                window.showToast("❌ Limit Reached! You can test maximum 12 apps. Please wait until testing cycle finishes.");
                                 return;
                             }
 
@@ -1276,7 +1357,11 @@
         function renderMyAppsAnalytics(allDbApps) {
             const container = document.getElementById('my-apps-analytics-list');
             const badge = document.getElementById('my-apps-count-badge');
+            const globalInboxList = document.getElementById('global-inbox-list');
+            const globalCountBadge = document.getElementById('global-proofs-count');
+            
             container.innerHTML = '';
+            globalInboxList.innerHTML = '';
 
             const myApps = allDbApps.filter(app => app.uploadedBy === userId);
             badge.innerText = `${myApps.length} Apps`;
@@ -1288,28 +1373,80 @@
                         <h4 class="font-extrabold text-gray-800 text-xs">No Apps Uploaded Yet</h4>
                         <p class="text-[11px] text-gray-400">Go to Upload tab to submit your app for closed testing.</p>
                     </div>`;
+                globalInboxList.innerHTML = '<p class="text-xs text-white/80 italic text-center py-2">No pending proofs right now.</p>';
+                globalCountBadge.innerText = `0 Pending`;
                 return;
             }
 
+            let totalPendingGlobalProofs = 0;
+
             myApps.forEach(appItem => {
                 const currentTesters = appItem.currentTesters || 0;
+                const targetTesters = appItem.testersCount || 12;
                 const initials = appItem.name ? appItem.name.substring(0, 2).toUpperCase() : 'AP';
                 const iconHTML = appItem.icon 
                     ? `<img src="${appItem.icon}" class="w-12 h-12 rounded-2xl object-cover shrink-0 shadow-xs">` 
                     : `<div class="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center text-white text-base font-bold shrink-0 shadow-xs">${initials}</div>`;
 
+                // Calculate 16 days countdown status
+                let countdownText = `Waiting for 12+ testers (${currentTesters}/12)...`;
+                if (appItem.milestoneReachedAt && appItem.milestoneReachedAt > 0) {
+                    const daysPassed = Math.floor((Date.now() - appItem.milestoneReachedAt) / (1000 * 60 * 60 * 24));
+                    const daysLeft = Math.max(0, 16 - daysPassed);
+                    countdownText = `⏳ ${daysLeft} days remaining in 16-day cycle`;
+                }
+
+                // Render Testers List
+                let testersListHTML = '';
+                if (appItem.testersList) {
+                    Object.values(appItem.testersList).forEach(tester => {
+                        testersListHTML += `
+                            <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-gray-100 text-xs mb-1">
+                                <span class="font-bold text-gray-800"><i class="fa-solid fa-user text-blue-500 mr-1"></i> ${tester.name}</span>
+                                <span class="text-[10px] text-gray-400 font-mono">ID: ${tester.userId.substring(0,6)}...</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    testersListHTML = '<p class="text-[11px] text-gray-400 italic">No testers joined yet.</p>';
+                }
+
+                // Render Proofs List
                 let proofsHTML = '';
                 if (appItem.proofs) {
-                    Object.values(appItem.proofs).forEach(proof => {
+                    Object.entries(appItem.proofs).forEach(([proofKey, proof]) => {
+                        const isVerified = proof.status === 'Verified';
+                        
+                        if (!isVerified) {
+                            totalPendingGlobalProofs++;
+                            // Append to Global Inbox
+                            const globalRow = document.createElement('div');
+                            globalRow.className = "flex items-center justify-between bg-white/10 backdrop-blur-xs p-2.5 rounded-xl border border-white/20 text-xs";
+                            globalRow.innerHTML = `
+                                <div>
+                                    <span class="font-extrabold text-white">${appItem.name}</span>
+                                    <p class="text-[10px] text-white/80 font-mono">By: ${proof.userName} • ${proof.dateSubmitted}</p>
+                                </div>
+                                <button onclick="viewProofImage('${proof.screenshotUrl}', 'Proof by ${proof.userName} - ${appItem.name}', '${appItem.id}', '${proofKey}')" class="bg-white text-orange-600 hover:bg-orange-50 font-extrabold px-3 py-1.5 rounded-xl text-[11px] cursor-pointer shadow-xs flex items-center gap-1">
+                                    <i class="fa-solid fa-eye"></i> View
+                                </button>
+                            `;
+                            globalInboxList.appendChild(globalRow);
+                        }
+
+                        const statusBadge = isVerified 
+                            ? `<span class="bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2.5 py-1 rounded-full"><i class="fa-solid fa-circle-check"></i> Verified ✔</span>` 
+                            : `<button onclick="viewProofImage('${proof.screenshotUrl}', 'Proof by ${proof.userName} - ${appItem.name}', '${appItem.id}', '${proofKey}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer shadow-xs flex items-center gap-1">
+                                <i class="fa-solid fa-image"></i> View Proof
+                               </button>`;
+
                         proofsHTML += `
-                            <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100 text-xs mb-1.5">
+                            <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-2xl border border-gray-100 text-xs mb-1.5">
                                 <div>
                                     <span class="font-bold text-gray-800">${proof.userName}</span>
                                     <p class="text-[10px] text-gray-400 font-mono">ID: ${proof.userId.substring(0,8)}... • ${proof.dateSubmitted}</p>
                                 </div>
-                                <button onclick="viewProofImage('${proof.screenshotUrl}', 'Proof by ${proof.userName} - ${proof.dateSubmitted}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1 rounded-lg text-[11px] cursor-pointer">
-                                    <i class="fa-solid fa-image"></i> View Proof
-                                </button>
+                                ${statusBadge}
                             </div>
                         `;
                     });
@@ -1329,9 +1466,27 @@
                                 <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block mt-0.5">${appItem.status || 'Active'}</span>
                             </div>
                         </div>
-                        <span class="font-extrabold text-xs text-gray-500 font-mono">${currentTesters} Testers</span>
+                        <div class="text-right">
+                            <span class="font-extrabold text-xs text-blue-600">${currentTesters} / ${targetTesters}+ Testers</span>
+                        </div>
                     </div>
 
+                    <div class="bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-amber-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock"></i> ${countdownText}
+                    </div>
+
+                    <!-- Joined Testers List Section -->
+                    <div class="bg-blue-50/50 p-3 rounded-2xl border border-blue-100 space-y-1.5">
+                        <div class="flex justify-between items-center text-xs font-extrabold text-blue-900">
+                            <span>Joined Testers List</span>
+                            <span class="text-[10px] bg-blue-200 text-blue-900 px-2 py-0.5 rounded-full">${currentTesters} Joined</span>
+                        </div>
+                        <div class="max-h-32 overflow-y-auto no-scrollbar space-y-1">
+                            ${testersListHTML}
+                        </div>
+                    </div>
+
+                    <!-- Daily Proof Files Section -->
                     <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-2">
                         <div class="flex justify-between items-center text-xs font-bold text-gray-700">
                             <span>Tester Proof Files (Screenshots)</span>
@@ -1344,6 +1499,11 @@
                 `;
                 container.appendChild(card);
             });
+
+            globalCountBadge.innerText = `${totalPendingGlobalProofs} Pending`;
+            if (totalPendingGlobalProofs === 0) {
+                globalInboxList.innerHTML = '<p class="text-xs text-white/80 italic text-center py-2">No pending proofs right now.</p>';
+            }
         }
 
         let currentPendingDailyApps = [];
@@ -1472,10 +1632,10 @@
                     const appData = claimedApps[app.id];
                     const milestoneTime = appData.milestoneReachedAt || 0;
                     
-                    let daysText = `Waiting for 12 testers (${app.currentTesters || 0}/12)...`;
+                    let daysText = `Waiting for 12+ testers (${app.currentTesters || 0}/12)...`;
                     if (milestoneTime > 0) {
                         const daysPassed = Math.floor((Date.now() - milestoneTime) / (1000 * 60 * 60 * 24));
-                        const daysLeft = Math.max(0, 14 - daysPassed);
+                        const daysLeft = Math.max(0, 16 - daysPassed);
                         daysText = `${daysLeft} days remaining`;
                     }
 
