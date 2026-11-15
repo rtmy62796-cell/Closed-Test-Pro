@@ -601,7 +601,7 @@
             return "";
         }
 
-        // রিয়েল ডিভাইস ইনটেন্ট ইনস্টল চেক
+        // রিয়েল ডিভাইস ইনটেন্ট ইনস্টল চেক with Google Play Store Fallback
         function checkAppInstalledOnDevice(packageName) {
             return new Promise((resolve) => {
                 if (!packageName) {
@@ -618,8 +618,11 @@
                 
                 document.addEventListener('visibilitychange', handleVisibility);
                 
-                // অ্যান্ড্রয়েড ইনটেন্ট দিয়ে অ্যাপ ওপেন করার চেষ্টা
-                window.location.href = `intent://#Intent;package=${packageName};end`;
+                const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`;
+                const encodedFallback = encodeURIComponent(playStoreUrl);
+                
+                // অ্যান্ড্রয়েড ইনটেন্ট এবং ব্রাউজার ফলব্যাক ইউআরএল হিসেবে গুগল প্লে স্টোর লিংক
+                window.location.href = `intent://#Intent;package=${packageName};S.browser_fallback_url=${encodedFallback};end`;
                 
                 setTimeout(() => {
                     document.removeEventListener('visibilitychange', handleVisibility);
@@ -630,7 +633,12 @@
 
         function openPlayStoreForInstall(appItem) {
             const targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
-            window.open(targetLink, '_blank');
+            const packageName = extractPackageName(targetLink);
+            if (packageName) {
+                window.open(`https://play.google.com/store/apps/details?id=${packageName}`, '_blank');
+            } else {
+                window.open(targetLink, '_blank');
+            }
         }
 
         const savedLang = localStorage.getItem('app_language') || 'en';
