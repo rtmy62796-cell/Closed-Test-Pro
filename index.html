@@ -97,7 +97,7 @@
             </div>
         </div>
 
-        <!-- Mandatory Daily Lock Warning Modal (English Notification) -->
+        <!-- Mandatory Daily Lock Warning Modal -->
         <div id="daily-mandatory-lock-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-xs z-50 flex items-center justify-center p-5 hide">
             <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl border-2 border-red-100">
                 <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto font-bold animate-bounce">
@@ -117,7 +117,7 @@
             </div>
         </div>
 
-        <!-- Install & Verify Modal (One Button Flow) -->
+        <!-- Install & Verify Modal (Secure Installation Check) -->
         <div id="install-verify-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-xs z-50 flex items-center justify-center p-5 hide">
             <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl border border-blue-100">
                 <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mx-auto font-bold">
@@ -144,7 +144,7 @@
             </div>
         </div>
 
-        <!-- App Not Installed Warning Modal (During Daily 30s Check) -->
+        <!-- App Not Installed Warning Modal -->
         <div id="not-installed-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-xs z-50 flex items-center justify-center p-5 hide">
             <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl border-2 border-amber-200">
                 <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto font-bold">
@@ -159,9 +159,6 @@
                 <div class="space-y-2 pt-1">
                     <button id="btn-download-missing-app" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-2xl text-xs shadow-md cursor-pointer transition flex items-center justify-center gap-2">
                         <i class="fa-brands fa-google-play"></i> Download & Install App Now
-                    </button>
-                    <button id="btn-retry-daily-check" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-2xl text-xs shadow-md cursor-pointer transition">
-                        I Installed It — Start 30s Test ✔
                     </button>
                     <button onclick="document.getElementById('not-installed-modal').classList.add('hide')" class="text-[11px] text-gray-400 hover:text-gray-600 font-bold pt-1 cursor-pointer">
                         Close
@@ -569,8 +566,6 @@
         let isUserInitialized = false;
         let hasShownDailyLockAlertThisSession = false;
 
-        let pendingInstallClaims = JSON.parse(localStorage.getItem('pending_install_claims') || '{}');
-
         const coinBalanceEl = document.getElementById('coin-balance');
         const profileCoinsEl = document.getElementById('profile-coins');
         const dailyProgressEl = document.getElementById('daily-progress-text');
@@ -606,27 +601,36 @@
             return "";
         }
 
-        // ইনস্টল চেক ফাংশন
+        // রিয়েল ডিভাইস ইনটেন্ট ইনস্টল চেক
         function checkAppInstalledOnDevice(packageName) {
             return new Promise((resolve) => {
                 if (!packageName) {
                     resolve(false);
                     return;
                 }
-                const isMarkedInstalled = localStorage.getItem('installed_' + packageName) === 'true';
-                resolve(isMarkedInstalled);
+                
+                let appOpened = false;
+                const handleVisibility = () => {
+                    if (document.hidden) {
+                        appOpened = true;
+                    }
+                };
+                
+                document.addEventListener('visibilitychange', handleVisibility);
+                
+                // অ্যান্ড্রয়েড ইনটেন্ট দিয়ে অ্যাপ ওপেন করার চেষ্টা
+                window.location.href = `intent://#Intent;package=${packageName};end`;
+                
+                setTimeout(() => {
+                    document.removeEventListener('visibilitychange', handleVisibility);
+                    resolve(appOpened);
+                }, 1200);
             });
         }
 
         function openPlayStoreForInstall(appItem) {
             const targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
-            const packageName = extractPackageName(targetLink);
-            if (packageName) {
-                window.open(`https://play.google.com/store/apps/details?id=${packageName}`, '_blank');
-                localStorage.setItem('installed_' + packageName, 'true');
-            } else {
-                window.open(targetLink, '_blank');
-            }
+            window.open(targetLink, '_blank');
         }
 
         const savedLang = localStorage.getItem('app_language') || 'en';
@@ -1055,7 +1059,7 @@
             document.getElementById('install-verify-modal').classList.add('hide');
         };
 
-        // সিঙ্গেল বাটন ইনস্টল ও ভেরিফিকেশন ফ্লো
+        // হোমস্ক্রিন থেকে ইনস্টল ও ভেরিফিকেশন ফ্লো
         function openInstallVerificationFlow(appItem, rewardCoins, currentJoinedCount, btnElement) {
             const modal = document.getElementById('install-verify-modal');
             const titleEl = document.getElementById('verify-modal-app-name');
@@ -1064,7 +1068,7 @@
             titleEl.innerText = `Install & Verify: ${appItem.name}`;
             modal.classList.remove('hide');
 
-            // প্লে স্টোরে রিডাইরেক্ট করা ও ইনস্টল ফ্ল্যাগ সেট করা
+            // প্লে স্টোরে রিডাইরেক্ট করা হচ্ছে
             openPlayStoreForInstall(appItem);
 
             confirmBtn.onclick = async () => {
@@ -1075,27 +1079,25 @@
 
                 const packageName = extractPackageName(appItem.link);
                 if (!packageName) {
-                    window.showToast("❌ Invalid package link! Cannot verify installation.");
+                    window.showToast("❌ Invalid package link!");
                     return;
                 }
 
                 confirmBtn.disabled = true;
                 confirmBtn.innerText = "Checking Device...";
 
+                // রিয়েল ইনটেন্ট দিয়ে চেক করা হচ্ছে অ্যাপটি ইনস্টল করা আছে কি না
                 const isInstalled = await checkAppInstalledOnDevice(packageName);
 
                 confirmBtn.disabled = false;
                 confirmBtn.innerText = "Verify & Claim Coins ✔";
 
                 if (!isInstalled) {
-                    window.showToast("❌ অ্যাপটি ইনস্টল করা নেই! প্লে স্টোর থেকে ইনস্টল করার পর আবার এখানে এসে ভেরিফাই করুন।");
+                    window.showToast("❌ অ্যাপটি ইনস্টল করা নেই! প্লে স্টোর থেকে অ্যাপটি নামানোর পর আবার এসে ভেরিফাই করুন।");
                     return;
                 }
 
                 activeClaimingLock[appItem.id] = true;
-                delete pendingInstallClaims[appItem.id];
-                localStorage.setItem('pending_install_claims', JSON.stringify(pendingInstallClaims));
-
                 modal.classList.add('hide');
 
                 if (btnElement) {
@@ -1143,6 +1145,80 @@
                 window.showToast(`Installation Verified! +${rewardCoins} Coins added ✔`);
                 renderApps(allApps);
             };
+        }
+
+        // ডেইলি ৩০ সেকেন্ড টেস্ট এবং ওপেন ফ্লো
+        async function startDaily30SecondCheck(appItem) {
+            const packageName = extractPackageName(appItem.link);
+            if (!packageName) {
+                window.showToast("❌ Invalid App Package Link!");
+                return;
+            }
+
+            window.showToast("Checking device installation...");
+
+            // প্রথমে চেক করা হচ্ছে অ্যাপটি ফোনে ইনস্টল করা আছে কি না
+            const isInstalled = await checkAppInstalledOnDevice(packageName);
+
+            if (!isInstalled) {
+                update(ref(db, `apps/${appItem.id}`), {
+                    uninstalls: (appItem.uninstalls || 0) + 1
+                });
+                
+                document.getElementById('missing-app-name').innerText = appItem.name;
+                document.getElementById('btn-download-missing-app').onclick = () => {
+                    openPlayStoreForInstall(appItem);
+                };
+                document.getElementById('not-installed-modal').classList.remove('hide');
+                return;
+            }
+
+            // অ্যাপ ইনস্টল থাকলে সরাসরি অ্যাপের ভেতরে নিয়ে যাবে এবং উপরে কাউন্টডাউন শুরু হবে
+            window.showToast(`Opening ${appItem.name}...`);
+
+            const modal = document.getElementById('trial-timer-modal');
+            const titleEl = document.getElementById('trial-app-title');
+            const timerEl = document.getElementById('countdown-timer');
+            
+            titleEl.innerText = `Testing: ${appItem.name}`;
+            modal.classList.remove('hide');
+
+            let timeLeft = 30;
+            timerEl.innerText = `${timeLeft}s`;
+
+            if(activeTimerInterval) clearInterval(activeTimerInterval);
+
+            const handleVisibilityChange = () => {
+                if (!document.hidden && timeLeft > 0) {
+                    clearInterval(activeTimerInterval);
+                    modal.classList.add('hide');
+                    window.showToast("❌ Task Failed! ৩০ সেকেন্ড শেষ হওয়ার আগে অ্যাপ থেকে বের হয়ে গেছেন।");
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                }
+            };
+
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            activeTimerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = `${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(activeTimerInterval);
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    modal.classList.add('hide');
+
+                    const now = Date.now();
+                    claimedApps[appItem.id].lastTestedTimestamp = now;
+                    
+                    update(ref(db, `users/${userId}/claimedApps/${appItem.id}`), { 
+                        lastTestedTimestamp: now 
+                    });
+                    
+                    window.showToast(`✅ ${appItem.name} সফলভাবে ৩০ সেকেন্ড টেস্ট করা হয়েছে!`);
+                    renderDailyTestingApps(allApps);
+                }
+            }, 1000);
         }
 
         function renderApps(appsArray) {
@@ -1408,7 +1484,7 @@
                 const btnHTML = isTestedToday 
                     ? `<span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1"><i class="fa-solid fa-circle-check text-base"></i> Tested Today</span>` 
                     : `<button id="btn-daily-${appItem.id}" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl cursor-pointer transition flex items-center gap-1 shadow-xs">
-                        <i class="fa-solid fa-play text-[10px]"></i> Test Daily (30s)
+                        <i class="fa-solid fa-play text-[10px]"></i> Open & Test (30s)
                        </button>`;
 
                 card.innerHTML = `
@@ -1458,72 +1534,6 @@
                     );
                 }
             }
-        }
-
-        // ডেইলি ৩০ সেকেন্ড চেক ফাংশন
-        async function startDaily30SecondCheck(appItem) {
-            const packageName = extractPackageName(appItem.link);
-            if (!packageName) {
-                window.showToast("❌ Invalid App Package Link!");
-                return;
-            }
-
-            window.showToast(`Checking app status...`);
-
-            const isInstalled = await checkAppInstalledOnDevice(packageName);
-
-            if (!isInstalled) {
-                update(ref(db, `apps/${appItem.id}`), {
-                    uninstalls: (appItem.uninstalls || 0) + 1
-                });
-                window.showToast("⚠️ অ্যাপটি ইনস্টল করা নেই! প্লে স্টোর থেকে ইনস্টল করুন।");
-                openPlayStoreForInstall(appItem);
-                return;
-            }
-
-            const modal = document.getElementById('trial-timer-modal');
-            const titleEl = document.getElementById('trial-app-title');
-            const timerEl = document.getElementById('countdown-timer');
-            
-            titleEl.innerText = `Testing: ${appItem.name}`;
-            modal.classList.remove('hide');
-
-            let timeLeft = 30;
-            timerEl.innerText = `${timeLeft}s`;
-
-            if(activeTimerInterval) clearInterval(activeTimerInterval);
-
-            const handleVisibilityChange = () => {
-                if (!document.hidden && timeLeft > 0) {
-                    clearInterval(activeTimerInterval);
-                    modal.classList.add('hide');
-                    window.showToast("❌ Task Failed! ৩০ সেকেন্ড শেষ হওয়ার আগে অ্যাপ থেকে বের হয়ে গেছেন।");
-                    document.removeEventListener('visibilitychange', handleVisibilityChange);
-                }
-            };
-
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-
-            activeTimerInterval = setInterval(() => {
-                timeLeft--;
-                timerEl.innerText = `${timeLeft}s`;
-
-                if (timeLeft <= 0) {
-                    clearInterval(activeTimerInterval);
-                    document.removeEventListener('visibilitychange', handleVisibilityChange);
-                    modal.classList.add('hide');
-
-                    const now = Date.now();
-                    claimedApps[appItem.id].lastTestedTimestamp = now;
-                    
-                    update(ref(db, `users/${userId}/claimedApps/${appItem.id}`), { 
-                        lastTestedTimestamp: now 
-                    });
-                    
-                    window.showToast(`✅ ${appItem.name} সফলভাবে ৩০ সেকেন্ড টেস্ট করা হয়েছে!`);
-                    renderDailyTestingApps(allApps);
-                }
-            }, 1000);
         }
 
         function renderProfileActiveApps(appsArray) {
