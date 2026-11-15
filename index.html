@@ -144,29 +144,6 @@
             </div>
         </div>
 
-        <!-- App Not Installed Warning Modal -->
-        <div id="not-installed-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-xs z-50 flex items-center justify-center p-5 hide">
-            <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl border-2 border-amber-200">
-                <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto font-bold">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <div class="space-y-1.5">
-                    <h3 class="font-extrabold text-gray-900 text-base">App Not Installed!</h3>
-                    <p class="text-xs text-gray-600 leading-relaxed">
-                        <b id="missing-app-name" class="text-gray-900">This app</b> was not detected on your device or was uninstalled. You must download and install it first, then open it for <b>30 seconds</b> to complete today's task!
-                    </p>
-                </div>
-                <div class="space-y-2 pt-1">
-                    <button id="btn-download-missing-app" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-2xl text-xs shadow-md cursor-pointer transition flex items-center justify-center gap-2">
-                        <i class="fa-brands fa-google-play"></i> Download & Install App Now
-                    </button>
-                    <button onclick="document.getElementById('not-installed-modal').classList.add('hide')" class="text-[11px] text-gray-400 hover:text-gray-600 font-bold pt-1 cursor-pointer">
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- Helpline Modal -->
         <div id="helpline-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-6 hide">
             <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
@@ -468,7 +445,7 @@
         <!-- 30-Second Countdown Modal -->
         <div id="trial-timer-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-6 hide">
             <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center space-y-4 shadow-2xl">
-                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto font-bold animate-pulse">
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mx-auto font-bold animate-pulse">
                     <i class="fa-solid fa-hourglass-half"></i>
                 </div>
                 <div class="space-y-1">
@@ -601,11 +578,11 @@
             return "";
         }
 
-        function openPlayStoreForInstall(appItem) {
+        // ইনস্টল চেক করার জন্য ব্রাউজার ইনটেন্ট স্কিম (অ্যাপ থাকলে ওপেন হবে, না থাকলে প্লে স্টোরে নিয়ে যাবে)
+        function openOrInstallApp(appItem) {
             const targetLink = appItem.link ? appItem.link.trim() : 'https://play.google.com';
             const packageName = extractPackageName(targetLink);
             if (packageName) {
-                // অ্যান্ড্রয়েড ইনটেন্ট স্কিম: অ্যাপ থাকলে ওপেন হবে, না থাকলে প্লে স্টোরে নিয়ে যাবে
                 const intentUrl = `intent://#Intent;package=${packageName};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url=${encodeURIComponent(`https://play.google.com/store/apps/details?id=${packageName}`)};end;`;
                 window.location.href = intentUrl;
             } else {
@@ -1039,7 +1016,7 @@
             document.getElementById('install-verify-modal').classList.add('hide');
         };
 
-        // হোমস্ক্রিন থেকে ইনস্টল ও ভেরিফিকেশন ফ্লো
+        // ১. হোম ট্যাব থেকে প্রথমবার ইনস্টল ও ভেরিফিকেশন ফ্লো (কয়েন পাওয়ার সঠিক লজিক)
         function openInstallVerificationFlow(appItem, rewardCoins, currentJoinedCount, btnElement) {
             const modal = document.getElementById('install-verify-modal');
             const titleEl = document.getElementById('verify-modal-app-name');
@@ -1048,7 +1025,7 @@
             titleEl.innerText = `Install & Verify: ${appItem.name}`;
             modal.classList.remove('hide');
 
-            openPlayStoreForInstall(appItem);
+            openOrInstallApp(appItem);
 
             confirmBtn.onclick = async () => {
                 if (activeClaimingLock[appItem.id] || (claimedApps && claimedApps[appItem.id])) {
@@ -1112,7 +1089,7 @@
             };
         }
 
-        // ডেইলি ৩০ সেকেন্ড টেস্ট এবং ওপেন ফ্লো (টাইমস্ট্যাম্প ও ব্যাকগ্রাউন্ড ট্র্যাকিং সহ আপডেট করা)
+        // ২. ডেইলি ৩০ সেকেন্ড টেস্ট এবং ওপেন ফ্লো (সঠিক ইনস্টল চেক ও টাইমস্ট্যাম্প কাউন্টডাউন)
         function startDaily30SecondCheck(appItem) {
             const packageName = extractPackageName(appItem.link);
             if (!packageName) {
@@ -1133,29 +1110,25 @@
             if(activeTimerInterval) clearInterval(activeTimerInterval);
 
             const startTime = Date.now();
-            const targetDuration = 30000; // ৩০ সেকেন্ড (মিলি সেকেন্ডে)
+            const targetDuration = 30000; // ৩০ সেকেন্ড
 
-            // সরাসরি অ্যাপ ওপেন করার ইনটেন্ট (না থাকলে প্লে স্টোর ব্যাকআপ লিংক)
-            const intentUrl = `intent://#Intent;package=${packageName};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url=${encodeURIComponent(`https://play.google.com/store/apps/details?id=${packageName}`)};end;`;
-            window.location.href = intentUrl;
+            // অ্যাপ ওপেন করার চেষ্টা করবে, ফোনে না থাকলে প্লে স্টোরে পাঠাবে
+            openOrInstallApp(appItem);
 
             window.showToast(`${appItem.name} ওপেন করা হচ্ছে... ৩০ সেকেন্ড অ্যাপের ভেতরে থাকুন।`);
 
             let isFinished = false;
 
-            // ইউজার অ্যাপ থেকে ব্রাউজারে ফিরে আসলে সময় চেক করা
             const handleVisibilityChange = () => {
                 if (!document.hidden && !isFinished) {
                     const elapsed = Date.now() - startTime;
                     if (elapsed < targetDuration) {
-                        // ৩০ সেকেন্ড পূর্ণ হওয়ার আগেই ফিরে এসেছে -> ফেল
                         isFinished = true;
                         clearInterval(activeTimerInterval);
                         document.removeEventListener('visibilitychange', handleVisibilityChange);
                         modal.classList.add('hide');
                         window.showToast("❌ টাস্ক বাতিল! ৩০ সেকেন্ড শেষ হওয়ার আগে অ্যাপ থেকে বের হয়ে গেছেন।");
                     } else {
-                        // ৩০ সেকেন্ড বা তার বেশি সময় অতিবাহিত হওয়ার পর ফিরে এসেছে -> সফল
                         isFinished = true;
                         clearInterval(activeTimerInterval);
                         document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -1175,7 +1148,6 @@
 
             document.addEventListener('visibilitychange', handleVisibilityChange);
 
-            // রিয়েল-টাইম কাউন্টডাউন আপডেট
             activeTimerInterval = setInterval(() => {
                 const elapsed = Date.now() - startTime;
                 timeLeft = Math.max(0, Math.ceil((targetDuration - elapsed) / 1000));
